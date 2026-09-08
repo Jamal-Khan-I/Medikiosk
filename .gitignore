@@ -1,0 +1,42 @@
+# Node dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+*.env
+
+# Build outputs
+frontend/dist/
+dist/
+build/
+
+# Audio & Cache Files
+backend/cache/
+*.mp3
+*.wav
+*.traineddata
+
+# Temporary / Test Output Files
+fhir_bundle_output.json
+test_doc*.png
+sample_reports/
+test_*.py
+generate_sample_pdfs.js
+*.benchmark.*
+backend/tests/gemini_voice_benchmark_results.json
+*.log
+.system_generated/
+.tempmediaStorage/
+temp/
+tmp/
+
+# OS / IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

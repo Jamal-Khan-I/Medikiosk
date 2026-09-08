@@ -1,0 +1,20 @@
+{
+  "kiosk_header_title": "मेडीकियोस्क ओपीडी टर्मिनल — कियोस्क 01",
+  "kiosk_header_subtitle": "भूतल ओपीडी परिसर — ईस्ट विंग",
+  "token_label": "टोकन",
+  "voice_guide_active": "ध्वनि मार्गदर्शन सक्रिय",
+  "audio_muted": "ध्वनि म्यूट",
+  "exit_kiosk": "कियोस्क से बाहर निकलें",
+  "triage_alert_title": "आपातकालीन ट्राइएज चेतावनी:",
+  "triage_alert_desc": "गंभीर लक्षण पैटर्न पहचाना गया ({{reason}})। अस्पताल रैपिड रिस्पांस नर्स को सूचित कर दिया गया है।",
+  "triage_dispatched": "ट्राइएज टीम रवाना",
+  "step_counter": "चरण {{current}} / {{total}}",
+  "back": "पीछे",
+  "next": "आगे",
+  "proceed": "आगे बढ़ें",
+  "cancel": "रद्द करें",
+  "close": "बंद करें",
+  "yes": "हाँ",
+  "no": "नहीं",
+  "select_language_title": "अपनी पसंदीदा भाषा चुनें"
+}

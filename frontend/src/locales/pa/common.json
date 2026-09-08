@@ -1,0 +1,20 @@
+{
+  "kiosk_header_title": "ਮੈਡੀਕਿਓਸਕ ਓਪੀਡੀ ਟਰਮੀਨਲ — ਕਿਓਸਕ 01",
+  "kiosk_header_subtitle": "ਗਰਾਊਂਡ ਫਲੋਰ ਓਪੀਡੀ ਐਟਰੀਅਮ — ਈਸਟ ਵਿੰਗ",
+  "token_label": "ਟੋਕਨ",
+  "voice_guide_active": "ਵੌਇਸ ਗਾਈਡ ਚਾਲੂ ਹੈ",
+  "audio_muted": "ਆਡੀਓ ਬੰਦ ਹੈ",
+  "exit_kiosk": "ਬਾਹਰ ਨਿਕਲੋ",
+  "triage_alert_title": "ਕਲੀਨਿਕਲ ਟ੍ਰਾਈਏਜ ਅਲਰਟ:",
+  "triage_alert_desc": "ਗੰਭੀਰ ਲੱਛਣ ਮਿਲੇ ({{reason}})। ਐਮਰਜੈਂਸੀ ਨਰਸ ਨੂੰ ਸੂਚਿਤ ਕੀਤਾ ਗਿਆ ਹੈ।",
+  "triage_dispatched": "ਟ੍ਰਾਈਏਜ ਟੀਮ ਭੇਜੀ ਗਈ",
+  "step_counter": "ਕਦਮ {{current}} / {{total}}",
+  "back": "ਪਿੱਛੇ",
+  "next": "ਅੱਗੇ",
+  "proceed": "ਜਾਰੀ ਰੱਖੋ",
+  "cancel": "ਰੱਦ ਕਰੋ",
+  "close": "ਬੰਦ ਕਰੋ",
+  "yes": "ਹਾਂ",
+  "no": "ਨਹੀਂ",
+  "select_language_title": "ਆਪਣੀ ਪਸੰਦੀਦਾ ਭਾਸ਼ਾ ਚੁਣੋ"
+}

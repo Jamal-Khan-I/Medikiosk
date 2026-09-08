@@ -1,0 +1,20 @@
+{
+  "kiosk_header_title": "मेडीकिओस्क ओपीडी टर्मिनल — किओस्क ०१",
+  "kiosk_header_subtitle": "तळमजला ओपीडी संकुल — पूर्व विंग",
+  "token_label": "टोकन",
+  "voice_guide_active": "व्हॉइस मार्गदर्शक सक्रिय",
+  "audio_muted": "आवाज म्यूट",
+  "exit_kiosk": "किओस्कमधून बाहेर पडा",
+  "triage_alert_title": "तातडीचा ट्रायज इशारा:",
+  "triage_alert_desc": "गंभीर लक्षण पॅटर्न आढळले ({{reason}}). हॉस्पिटल रॅपिड रिस्पॉन्स नर्सला सूचित केले आहे.",
+  "triage_dispatched": "ट्रायज पथक रवाना",
+  "step_counter": "टप्पा {{current}} / {{total}}",
+  "back": "मागे",
+  "next": "पुढे",
+  "proceed": "पुढे जा",
+  "cancel": "रद्द करा",
+  "close": "बंद करा",
+  "yes": "होय",
+  "no": "नाही",
+  "select_language_title": "तुमची पसंतीची भाषा निवडा"
+}

@@ -1,0 +1,19 @@
+{
+  "consent_badge": "Step 3 of 6",
+  "consent_title": "Statutory DPDP Consent Gate",
+  "consent_subtitle": "Digital Personal Data Protection Act, 2023 requires your explicit choice for each data purpose.",
+  "audio_notice_prefix": "Audio Notice (Voice Guide):",
+  "audio_notice_text": "Please review and grant your permissions below. Consent for Clinical Intake and Document OCR are mandatory for today's OPD consultation.",
+  "mandatory_tag": "[Mandatory]",
+  "consent_intake_title": "1. Clinical History Intake",
+  "consent_intake_desc": "Enables voice and touch processing of your symptoms to construct a structured history for your doctor.",
+  "consent_ocr_title": "2. Document OCR & Lab Trend Extraction",
+  "consent_ocr_desc": "Enables optical scanning of prior test reports and prescription cards to extract medications and test trends.",
+  "consent_abdm_title": "3. ABDM Health Locker Synchronization",
+  "consent_abdm_desc": "Links your consultation summary to your official Ayushman Bharat Health Account (ABHA).",
+  "consent_research_title": "4. Anonymized Public Health Analytics (Optional)",
+  "consent_research_desc": "Allows fully de-identified statistics to be used for hospital throughput research.",
+  "authorize_proceed_btn": "Authorize & Proceed",
+  "error_mandatory_consents": "Consent for Clinical Intake and Document OCR are mandatory to proceed with OPD consultation.",
+  "hear_spoken_btn": "Hear Spoken"
+}

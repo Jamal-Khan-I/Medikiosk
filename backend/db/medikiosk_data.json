@@ -1,0 +1,100 @@
+{
+  "staff_accounts": [
+    {
+      "id": "doc_101",
+      "name": "Dr. Ajmal Khan, MD",
+      "email": "ajmalkhan@med.in",
+      "role": "PHYSICIAN",
+      "specialty": "Internal Medicine & Diabetology",
+      "department": "OPD General Medicine",
+      "nmc_registration_number": "NMC-2024-88419",
+      "password": "Medikiosk",
+      "password_hash": "Medikiosk",
+      "is_active": true,
+      "created_at": "2026-09-06T16:50:44.203Z",
+      "updated_at": "2026-09-08T10:00:00.000Z"
+    },
+    {
+      "id": "admin_01",
+      "name": "Hospital Administrator",
+      "email": "admin@apexmed.in",
+      "role": "ADMIN",
+      "specialty": "Hospital Operations",
+      "department": "Hospital Administration",
+      "nmc_registration_number": "N/A",
+      "password": "admin123",
+      "password_hash": "admin123",
+      "is_active": true,
+      "created_at": "2026-09-06T16:50:44.203Z",
+      "updated_at": "2026-09-08T10:00:00.000Z"
+    }
+  ],
+  "kiosk_devices": [
+    {
+      "id": "kiosk_01",
+      "kiosk_code": "KIOSK-OPD-101",
+      "location_name": "Ground Floor OPD Atrium — East Wing",
+      "department": "OPD General Medicine",
+      "status": "IDLE",
+      "battery_level": 100,
+      "firmware_version": "v2.4.1",
+      "camera_health": "OK",
+      "mic_health": "OK",
+      "current_encounter_id": null,
+      "last_heartbeat": "2026-09-06T17:00:00.000Z",
+      "updated_at": "2026-09-06T17:00:00.000Z"
+    },
+    {
+      "id": "kiosk_02",
+      "kiosk_code": "KIOSK-OPD-102",
+      "location_name": "Ground Floor OPD Atrium — West Wing",
+      "department": "OPD General Medicine",
+      "status": "IDLE",
+      "battery_level": 100,
+      "firmware_version": "v2.4.1",
+      "camera_health": "OK",
+      "mic_health": "OK",
+      "current_encounter_id": null,
+      "last_heartbeat": "2026-09-06T17:00:00.000Z",
+      "updated_at": "2026-09-06T17:00:00.000Z"
+    }
+  ],
+  "patients": [
+    {
+      "full_name": "Jamal Khan",
+      "gender": "MALE",
+      "dob": "2006-11-28",
+      "age": 19,
+      "phone_number": "+91 8124547437",
+      "abha_number": null,
+      "abha_address": null,
+      "blood_group": "B+",
+      "preferred_language": "en",
+      "is_new_patient": true,
+      "id": "pat_1788762991212_wav6",
+      "created_at": "2026-09-07T06:36:31.212Z"
+    }
+  ],
+  "encounters": [],
+  "consent_records": [
+    {
+      "encounter_id": "enc_pre_1788762997845",
+      "patient_id": "pat_1788762991212_wav6",
+      "consent_intake": true,
+      "consent_ocr": true,
+      "consent_abdm_sync": true,
+      "consent_anonymized_research": false,
+      "consent_language": "en",
+      "audio_narration_played": true,
+      "dpdp_hash": "sha256:1aa7dde299b82ee628acc4b77dd3d19d480cd0aeb7270f39a15145f4144410b5",
+      "ip_address": "::1",
+      "id": "con_1788762997848_9tn8",
+      "created_at": "2026-09-07T06:36:37.848Z"
+    }
+  ],
+  "clinical_summaries": [],
+  "documents": [],
+  "extracted_entities": [],
+  "emergency_triage_alerts": [],
+  "audit_logs": []
+}

@@ -1,0 +1,20 @@
+{
+  "kiosk_header_title": "MediKiosk OPD Terminal — KIOSK 01",
+  "kiosk_header_subtitle": "Ground Floor OPD Atrium — East Wing",
+  "token_label": "Token",
+  "voice_guide_active": "Voice Guide Active",
+  "audio_muted": "Audio Muted",
+  "exit_kiosk": "Exit Kiosk",
+  "triage_alert_title": "Clinical Triage Alert:",
+  "triage_alert_desc": "Acute symptom pattern detected ({{reason}}). Hospital Rapid Response nurse notified.",
+  "triage_dispatched": "Triage Team Dispatched",
+  "step_counter": "Step {{current}} of {{total}}",
+  "back": "Back",
+  "next": "Next",
+  "proceed": "Proceed",
+  "cancel": "Cancel",
+  "close": "Close",
+  "yes": "YES",
+  "no": "NO",
+  "select_language_title": "Select Your Preferred Language"
+}

@@ -1,0 +1,322 @@
+/* ==========================================================================
+   MEDIKIOSK "STEEP" DESIGN SYSTEM TOKENS & CORE STYLES
+   ========================================================================== */
+
+:root {
+  /* Steep Monochrome Palette */
+  --ink-black: #17191c;
+  --ink-soft: #2d3139;
+  --paper-white: #ffffff;
+  --mist-gray: #f2f2f3;
+  --fog-white: #fafafb;
+  --slate-gray: #777b86;
+  --slate-light: #b0b4be;
+  --border-light: #e5e7eb;
+  --border-dark: #2a2e37;
+
+  /* Steep Warm Accent */
+  --blush-peach: #fbe1d1;
+  --sienna-brown: #5d2a1a;
+  --peach-subtle: #fdf5f0;
+
+  /* Clinical Semantics */
+  --alert-red-bg: #fef2f2;
+  --alert-red-border: #fecaca;
+  --alert-red-text: #991b1b;
+  --alert-red-bright: #dc2626;
+
+  --success-green-bg: #f0fdf4;
+  --success-green-border: #bbf7d0;
+  --success-green-text: #166534;
+  --success-green-bright: #15803d;
+
+  --warning-amber-bg: #fffbeb;
+  --warning-amber-border: #fde68a;
+  --warning-amber-text: #92400e;
+
+  /* Typography */
+  --font-serif: "Newsreader", "Signifier", Georgia, Cambria, serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Steep Geometry */
+  --radius-pill: 9999px;
+  --radius-card: 24px;
+  --radius-subtle: 12px;
+  --radius-kiosk: 20px;
+
+  /* Spacing Grid (4px base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px 0 rgba(23, 25, 28, 0.04);
+  --shadow-md: 0 4px 12px -2px rgba(23, 25, 28, 0.06), 0 2px 6px -1px rgba(23, 25, 28, 0.03);
+  --shadow-lg: 0 12px 32px -4px rgba(23, 25, 28, 0.08), 0 4px 12px -2px rgba(23, 25, 28, 0.03);
+  --shadow-triage: 0 0 0 3px rgba(220, 38, 38, 0.25), 0 8px 24px -4px rgba(220, 38, 38, 0.2);
+}
+
+/* Reset & Base */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  background-color: var(--paper-white);
+  color: var(--ink-black);
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--ink-black);
+  background-color: var(--paper-white);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Headings (Strictly 400 weight for Display Serif) */
+h1, h2, h3, .serif-heading {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--ink-black);
+  letter-spacing: -0.02em;
+}
+
+h1 { font-size: clamp(2.25rem, 5vw, 3.75rem); }
+h2 { font-size: clamp(1.75rem, 3.5vw, 2.5rem); }
+h3 { font-size: clamp(1.25rem, 2.5vw, 1.75rem); }
+h4 { font-family: var(--font-sans); font-size: 1.1rem; font-weight: 600; }
+
+p {
+  color: var(--ink-soft);
+  line-height: 1.65;
+}
+
+/* Steep Pill Buttons */
+.btn-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 12px 24px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid transparent;
+  outline: none;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.35;
+  max-width: 100%;
+  word-break: break-word;
+  box-sizing: border-box;
+}
+
+.btn-pill-primary {
+  background-color: var(--ink-black);
+  color: var(--paper-white);
+  border-color: var(--ink-black);
+}
+.btn-pill-primary:hover {
+  background-color: var(--ink-soft);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-pill-peach {
+  background-color: var(--blush-peach);
+  color: var(--sienna-brown);
+  border-color: rgba(93, 42, 26, 0.1);
+  font-weight: 600;
+}
+.btn-pill-peach:hover {
+  background-color: #f7d5c0;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-pill-secondary {
+  background-color: var(--mist-gray);
+  color: var(--ink-black);
+  border-color: var(--border-light);
+}
+.btn-pill-secondary:hover {
+  background-color: #e8e8ea;
+}
+
+.btn-pill-outline {
+  background-color: transparent;
+  color: var(--ink-black);
+  border-color: var(--border-light);
+}
+.btn-pill-outline:hover {
+  background-color: var(--fog-white);
+  border-color: var(--slate-light);
+}
+
+.btn-pill-outline-white {
+  background-color: transparent;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+.btn-pill-outline-white:hover {
+  background-color: #ffffff;
+  color: var(--ink-black) !important;
+  border-color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.btn-pill-danger {
+  background-color: var(--alert-red-bright);
+  color: var(--paper-white);
+  border-color: var(--alert-red-bright);
+}
+.btn-pill-danger:hover {
+  background-color: #b91c1c;
+}
+
+.btn-pill-sm {
+  padding: 8px 18px;
+  font-size: 0.84rem;
+}
+
+.btn-pill-lg {
+  padding: 16px 36px;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+/* Steep 24px Content Cards */
+.card-steep {
+  background-color: var(--paper-white);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border-light);
+  padding: var(--space-8);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.card-steep:hover {
+  border-color: rgba(23, 25, 28, 0.15);
+}
+
+.card-steep-fog {
+  background-color: var(--fog-white);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border-light);
+  padding: var(--space-8);
+}
+
+.card-steep-peach {
+  background-color: var(--peach-subtle);
+  border: 1px solid var(--blush-peach);
+  border-radius: var(--radius-card);
+  padding: var(--space-8);
+}
+
+/* Tag / Badge */
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.badge-peach {
+  background-color: var(--blush-peach);
+  color: var(--sienna-brown);
+}
+.badge-gray {
+  background-color: var(--mist-gray);
+  color: var(--ink-soft);
+}
+.badge-red {
+  background-color: var(--alert-red-bg);
+  color: var(--alert-red-text);
+  border: 1px solid var(--alert-red-border);
+}
+.badge-green {
+  background-color: var(--success-green-bg);
+  color: var(--success-green-text);
+  border: 1px solid var(--success-green-border);
+}
+
+/* Layout Utilities */
+.container-custom {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+.section-padding {
+  padding: var(--space-16) 0;
+}
+
+/* Input Fields */
+.input-steep {
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: var(--radius-subtle);
+  border: 1px solid var(--border-light);
+  background-color: var(--paper-white);
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  color: var(--ink-black);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.input-steep:focus {
+  border-color: var(--ink-black);
+  box-shadow: 0 0 0 2px rgba(23, 25, 28, 0.08);
+}
+
+/* Remove adjust buttons / spinners from inputs */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Kiosk Specific Accessible Touch Controls (48px+ targets) */
+.kiosk-touch-target {
+  min-height: 52px;
+  min-width: 52px;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+/* Animations */
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-pulse-red {
+  animation: pulse-red 1.5s infinite ease-in-out;
+}

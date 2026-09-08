@@ -1,0 +1,20 @@
+{
+  "kiosk_header_title": "મેડીકિયોસ્ક ઓપીડી ટર્મિનલ — કિયોસ્ક ૦૧",
+  "kiosk_header_subtitle": "ગ્રાઉન્ડ ફ્લોર ઓપીડી સંકુલ — પૂર્વ વિંગ",
+  "token_label": "ટોકન",
+  "voice_guide_active": "અવાજ માર્ગદર્શિકા સક્રિય",
+  "audio_muted": "અવાજ બંધ",
+  "exit_kiosk": "કિયોસ્કમાંથી બહાર નીકળો",
+  "triage_alert_title": "તાત્કાલિક ટ્રાયજ ચેતવણી:",
+  "triage_alert_desc": "ગંભીર લક્ષણ પેટર્ન જણાઈ ({{reason}}). હોસ્પિટલ રેપિડ રિસ્પોન્સ નર્સને જાણ કરવામાં આવી છે.",
+  "triage_dispatched": "ટ્રાયજ ટીમ રવાના",
+  "step_counter": "પગલું {{current}} / {{total}}",
+  "back": "પાછળ",
+  "next": "આગળ",
+  "proceed": "આગળ વધો",
+  "cancel": "રદ કરો",
+  "close": "બંધ કરો",
+  "yes": "હા",
+  "no": "ના",
+  "select_language_title": "તમારી પસંદગીની ભાષા પસંદ કરો"
+}
