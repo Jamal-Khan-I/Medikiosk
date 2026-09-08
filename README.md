@@ -75,7 +75,6 @@ Using voice AI, interactive touch, and intelligent document scanning, patients c
 | **Real-Time Gateway** | WebSockets |
 | **AI & Document OCR** | Google Gemini API (Multimodal Vision), Tesseract.js |
 | **Security & Auth** | JWT (JSON Web Tokens) |
-| **Healthcare Standard**| HL7 FHIR R4 |
 
 ---
 
