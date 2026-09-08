@@ -1,9 +1,5 @@
 # MediKiosk
 
-[![Live Demo](https://img.shields.io/badge/Live%20Website-medikiosk--9jyw.onrender.com-00c853?style=for-the-badge&logo=render&logoColor=white)](https://medikiosk-9jyw.onrender.com)
-
-🔗 **Live Website:** [https://medikiosk-9jyw.onrender.com](https://medikiosk-9jyw.onrender.com)
-
 **MediKiosk** is a next-generation hospital outpatient intake platform that streamlines the patient check-in experience, removes language barriers, and saves valuable clinical time for doctors.
 
 Using voice AI, interactive touch, and intelligent document scanning, patients can register, complete clinical questionnaires in their native language, and scan prior medical records before meeting the doctor. Physicians instantly receive a structured, prioritized clinical summary so they can focus on care rather than administrative data entry.
