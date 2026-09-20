@@ -66,11 +66,12 @@ Using voice AI, interactive touch, and intelligent document scanning, patients c
 | **Frontend** | React, JavaScript, HTML, CSS |
 | **Backend** | Node.js, Express.js |
 | **Database** | File-backed In-Memory Relational Store (JSON / PostgreSQL Schema) |
-| **Multilingual** | i18next (9 Indian Languages) |
-| **Voice & Speech** | Web Speech API, Google Gemini Audio |
+| **Multilingual UI & NMT** | i18next & **Bhashini NMT Translation Engine** (IndicTrans-v2) |
+| **Voice & Speech Engine** | **Bhashini ASR** (Conformer) & **Bhashini TTS** (Indic-TTS) |
+| **Document OCR Engine** | **Bhashini OCR** (MeitY National AI Pipeline) |
+| **Clinical Reasoning LLM** | Google Gemini API (SOCRATES dialogue & clinical summary text generation) |
 | **Real-Time Gateway** | WebSockets |
-| **AI & Document OCR** | Google Gemini API (Multimodal Vision), Tesseract.js |
-| **Security & Auth** | JWT (JSON Web Tokens) |
+| **Security & Auth** | JWT (JSON Web Tokens), DPDP Act 2023, ABDM M1/M2/M3 |
 
 ---
 

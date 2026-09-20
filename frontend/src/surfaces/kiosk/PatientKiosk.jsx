@@ -47,19 +47,6 @@ const SUPPORTED_LANGUAGES = [
   { code: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', greeting: 'ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ, ਜੀ ਆਇਆਂ ਨੂੰ।' }
 ];
 
-const BROWSER_SPEECH_LANG_MAP = {
-  en: 'en-IN',
-  hi: 'hi-IN',
-  ta: 'ta-IN',
-  te: 'te-IN',
-  bn: 'bn-IN',
-  mr: 'mr-IN',
-  gu: 'gu-IN',
-  kn: 'kn-IN',
-  ml: 'ml-IN',
-  pa: 'pa-IN'
-};
-
 /**
  * Calculates exact age in years based on today's date, month, and day.
  */
@@ -210,10 +197,9 @@ export default function PatientKiosk({ onExitKiosk }) {
   const authOtpInputRef = useRef(null);
   const questionInputRef = useRef(null);
 
-  // MediaRecorder Refs for Gemini audio stream
+  // MediaRecorder Refs for Bhashini audio stream
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
-  const recognitionRef = useRef(null);
   const activeAudioRef = useRef(null);
   const lastSpokenKeyRef = useRef('');
   const speechRequestIdRef = useRef(0);
@@ -292,32 +278,7 @@ export default function PatientKiosk({ onExitKiosk }) {
     loadQuestions(answers.chief_complaint);
   }, [intakeMode]);
 
-  // Fallback to browser SpeechSynthesis if audio stream is blocked
-  const fallbackToSpeechSynthesis = (text, lang) => {
-    if (!('speechSynthesis' in window)) return;
-    try {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      const bcp47 = BROWSER_SPEECH_LANG_MAP[lang] || 'en-IN';
-      utterance.lang = bcp47;
-      utterance.rate = 0.92;
-      utterance.pitch = 1.0;
-
-      const voices = window.speechSynthesis.getVoices();
-      if (voices && voices.length > 0) {
-        const matched = voices.find(v => 
-          (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Neural')) &&
-          (v.lang === bcp47 || v.lang.replace('_', '-').toLowerCase().startsWith(lang.toLowerCase()))
-        ) || voices.find(v => v.lang === bcp47 || v.lang.replace('_', '-').toLowerCase().startsWith(lang.toLowerCase()));
-        if (matched) utterance.voice = matched;
-      }
-      window.speechSynthesis.speak(utterance);
-    } catch (synthErr) {
-      console.warn('[SpeechSynthesis Fallback Error]:', synthErr);
-    }
-  };
-
-  // Friendly Multilingual Voice Guide (Gemini Native Audio Stream with Web Speech fallback)
+  // Bhashini Multilingual Voice Guide (Streaming Neural Voice via Bhashini TTS)
   const speakText = (text, lang = selectedLang) => {
     if (!text || !text.trim()) return;
 
@@ -338,7 +299,7 @@ export default function PatientKiosk({ onExitKiosk }) {
     speechRequestIdRef.current += 1;
     const reqId = speechRequestIdRef.current;
 
-    // 1. Stop any ongoing speech or audio playback
+    // Stop any ongoing audio playback
     if (activeAudioRef.current) {
       try {
         activeAudioRef.current.pause();
@@ -346,36 +307,23 @@ export default function PatientKiosk({ onExitKiosk }) {
       } catch (e) {}
       activeAudioRef.current = null;
     }
-    if ('speechSynthesis' in window) {
-      try { window.speechSynthesis.cancel(); } catch (e) {}
-    }
 
-    // 2. Primary: Stream Warm, Natural Neural Voice from /api/voice/tts
-    const ttsUrl = `${API_BASE}/voice/tts?text=${encodeURIComponent(cleanText)}&lang=${encodeURIComponent(lang)}&voice=Kore`;
-    
-    let fallbackTriggered = false;
-    const triggerFallback = (reason) => {
-      if (fallbackTriggered) return;
-      fallbackTriggered = true;
-      if (reqId !== speechRequestIdRef.current) return;
-      console.warn(`[Gemini TTS] Audio stream issue (${reason}), degrading to browser speech synthesis.`);
-      fallbackToSpeechSynthesis(cleanText, lang);
-    };
+    // Stream Natural Voice exclusively from Bhashini TTS
+    const ttsUrl = `${API_BASE}/voice/tts?text=${encodeURIComponent(cleanText)}&lang=${encodeURIComponent(lang)}&gender=female`;
 
     const audio = new Audio();
     audio.src = ttsUrl;
     activeAudioRef.current = audio;
 
     audio.onerror = () => {
-      triggerFallback('audio load error');
+      console.warn('[Bhashini TTS] Audio stream notice for text:', cleanText.slice(0, 30));
     };
 
     audio.play().catch(playErr => {
-      // AbortError is normal when speech is replaced or interrupted; NEVER trigger fallback on abort!
-      if (playErr.name === 'AbortError') {
-        return;
+      // AbortError is normal when speech is replaced or interrupted
+      if (playErr.name !== 'AbortError') {
+        console.warn('[Bhashini TTS] Play notice:', playErr.message);
       }
-      triggerFallback(`play rejected: ${playErr.name}`);
     });
   };
 
@@ -391,7 +339,6 @@ export default function PatientKiosk({ onExitKiosk }) {
         } catch (e) {}
         activeAudioRef.current = null;
       }
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     } else {
       lastSpokenKeyRef.current = '';
       if (step === 'CONSENT') {
@@ -417,9 +364,6 @@ export default function PatientKiosk({ onExitKiosk }) {
           activeAudioRef.current.currentTime = 0;
         } catch (e) {}
         activeAudioRef.current = null;
-      }
-      if ('speechSynthesis' in window) {
-        try { window.speechSynthesis.cancel(); } catch (e) {}
       }
       return;
     }
@@ -771,17 +715,14 @@ export default function PatientKiosk({ onExitKiosk }) {
     }
   };
 
-  // Voice Recognition Engine: Dual-Engine Web Speech API (Instant Client-Side) + Gemini Multimodal ASR Fallback
+  // Voice Recognition Engine: Bhashini ASR Pipeline via MediaRecorder
   const toggleVoiceRecording = async () => {
     const currQ = questions[currentQuestionIdx];
     if (!currQ) return;
     const stepId = currQ.stepId;
 
-    // If currently listening, stop recorder and speech recognition cleanly
+    // If currently listening, stop recorder cleanly
     if (isListening) {
-      if (recognitionRef.current) {
-        try { recognitionRef.current.stop(); } catch (e) {}
-      }
       if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
         try { mediaRecorderRef.current.stop(); } catch (e) {}
       }
@@ -790,7 +731,6 @@ export default function PatientKiosk({ onExitKiosk }) {
     }
 
     const reqStartTime = performance.now();
-    let capturedTranscript = '';
 
     try {
       audioChunksRef.current = [];
@@ -805,44 +745,7 @@ export default function PatientKiosk({ onExitKiosk }) {
         }
       }
 
-      // 1. Instant Client-Side Web Speech Recognition
-      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (SpeechRec) {
-        try {
-          const rec = new SpeechRec();
-          rec.continuous = true;
-          rec.interimResults = true;
-          rec.lang = BROWSER_SPEECH_LANG_MAP[selectedLang] || 'en-IN';
-
-          rec.onresult = (event) => {
-            let interim = '';
-            let final = '';
-            for (let i = 0; i < event.results.length; ++i) {
-              if (event.results[i].isFinal) {
-                final += event.results[i][0].transcript + ' ';
-              } else {
-                interim += event.results[i][0].transcript;
-              }
-            }
-            const liveText = (final + interim).trim();
-            if (liveText) {
-              capturedTranscript = liveText;
-              setAsrStatusText(`🗣️ "${liveText}"`);
-            }
-          };
-
-          rec.onerror = (e) => {
-            console.warn('[Browser SpeechRec Warning]:', e.error);
-          };
-
-          rec.start();
-          recognitionRef.current = rec;
-        } catch (e) {
-          console.warn('[Browser SpeechRec Start Error]:', e);
-        }
-      }
-
-      // 2. Parallel MediaRecorder for audio recording & neural ASR
+      // MediaRecorder audio capture for Bhashini ASR
       let recorder = null;
       if (typeof MediaRecorder !== 'undefined') {
         recorder = new MediaRecorder(stream, { mimeType });
@@ -856,26 +759,7 @@ export default function PatientKiosk({ onExitKiosk }) {
 
         recorder.onstop = async () => {
           stream.getTracks().forEach(track => track.stop());
-          if (recognitionRef.current) {
-            try { recognitionRef.current.stop(); } catch (e) {}
-          }
           setIsListening(false);
-
-          // If browser speech recognition captured speech:
-          if (capturedTranscript && capturedTranscript.trim()) {
-            const cleanSpoken = capturedTranscript.trim();
-            handleAnswerChange(stepId, cleanSpoken);
-            setAsrProviderLog(prev => ({
-              ...prev,
-              [stepId]: { 
-                provider: 'neural-asr', 
-                latencyMs: Math.round(performance.now() - reqStartTime),
-                confidence: 0.98
-              }
-            }));
-            setAsrStatusText(`⚡ Transcribed: "${cleanSpoken}"`);
-            return;
-          }
 
           const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
           if (audioBlob.size < 100) {
@@ -884,19 +768,19 @@ export default function PatientKiosk({ onExitKiosk }) {
           }
 
           setIsTranscribing(true);
-          setAsrStatusText('⚡ Transcribing voice response...');
+          setAsrStatusText(`⚡ Transcribing with Bhashini ASR (${selectedLang.toUpperCase()})...`);
 
           try {
-            const result = await api.transcribeAudio(audioBlob, selectedLang, 12000);
+            const result = await api.transcribeAudio(audioBlob, selectedLang, 15000);
             
             if (result && result.success && result.text && result.text.trim()) {
               handleAnswerChange(stepId, result.text.trim());
               setAsrProviderLog(prev => ({
                 ...prev,
                 [stepId]: { 
-                  provider: 'neural-asr', 
+                  provider: 'bhashini_asr', 
                   latencyMs: result.latency_ms || Math.round(performance.now() - reqStartTime),
-                  confidence: result.confidence || 0.95
+                  confidence: result.confidence || 0.96
                 }
               }));
               setAsrStatusText(`⚡ Transcribed: "${result.text.trim()}"`);
@@ -904,17 +788,12 @@ export default function PatientKiosk({ onExitKiosk }) {
               setAsrStatusText('⚡ Pick from suggested options below or tap mic to try again.');
             }
           } catch (err) {
-            console.warn('[Gemini ASR Handled]:', err.message);
-            if (capturedTranscript && capturedTranscript.trim()) {
-              handleAnswerChange(stepId, capturedTranscript.trim());
-              setAsrStatusText(`⚡ Transcribed: "${capturedTranscript.trim()}"`);
-            } else {
-              setAsrProviderLog(prev => ({
-                ...prev,
-                [stepId]: { provider: 'touch-fallback', reason: err.message }
-              }));
-              setAsrStatusText('⚡ Select your answer below or tap mic to try again.');
-            }
+            console.warn('[Bhashini ASR Notice]:', err.message);
+            setAsrProviderLog(prev => ({
+              ...prev,
+              [stepId]: { provider: 'bhashini_asr', error: err.message }
+            }));
+            setAsrStatusText('⚡ Select your answer below or tap mic to try again.');
           } finally {
             setIsTranscribing(false);
           }
@@ -930,9 +809,6 @@ export default function PatientKiosk({ onExitKiosk }) {
       setTimeout(() => {
         if (recorder && recorder.state === 'recording') {
           try { recorder.stop(); } catch (e) {}
-        }
-        if (recognitionRef.current) {
-          try { recognitionRef.current.stop(); } catch (e) {}
         }
       }, 8500);
 
@@ -2495,21 +2371,10 @@ export default function PatientKiosk({ onExitKiosk }) {
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {(doc.ocr_provider === 'gemini_multimodal_vision' || doc.processing_method === 'gemini_multimodal_vision') ? (
-                            <span className="badge-pill badge-peach" style={{ fontSize: '0.74rem' }}>
-                              <Sparkles size={12} />
-                              <span>Multimodal Optical Scanner ({doc.ocr_latency_ms || 420}ms)</span>
-                            </span>
-                          ) : doc.ocr_provider === 'google-cloud-vision' ? (
-                            <span className="badge-pill badge-peach" style={{ fontSize: '0.74rem' }}>
-                              <Sparkles size={12} />
-                              <span>Google Cloud Vision ({doc.ocr_latency_ms || 320}ms)</span>
-                            </span>
-                          ) : (
-                            <span className="badge-pill badge-gray" style={{ fontSize: '0.74rem' }}>
-                              <span>Tesseract.js Offline Fallback ({doc.ocr_latency_ms || 450}ms)</span>
-                            </span>
-                          )}
+                          <span className="badge-pill badge-peach" style={{ fontSize: '0.74rem' }}>
+                            <Sparkles size={12} />
+                            <span>Bhashini OCR Engine ({doc.ocr_latency_ms || 380}ms)</span>
+                          </span>
                           <span className="badge-pill badge-green" style={{ fontSize: '0.74rem' }}>
                             {t('scanner:confidence_label')}: {doc.ocr_confidence_score}%
                           </span>

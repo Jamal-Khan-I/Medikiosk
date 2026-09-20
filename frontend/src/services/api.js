@@ -176,8 +176,8 @@ class ApiClient {
     });
   }
 
-  // Google Gemini Speech-to-Text (ASR) Audio Transcription Client
-  async transcribeAudio(audioBlob, language = 'en', timeoutMs = 12000) {
+  // Bhashini Speech-to-Text (ASR) Audio Transcription Client
+  async transcribeAudio(audioBlob, language = 'hi', timeoutMs = 15000) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -207,21 +207,32 @@ class ApiClient {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || `Voice transcription returned HTTP ${res.status}`);
+        throw new Error(data.error || `Bhashini voice transcription returned HTTP ${res.status}`);
       }
 
       return data;
     } catch (err) {
       clearTimeout(timeoutId);
       if (err.name === 'AbortError') {
-        throw new Error('Voice transcription timed out. Please tap your answer or retry.');
+        throw new Error('Bhashini voice transcription timed out. Please tap your answer or retry.');
       }
       throw err;
     }
   }
 
-  getVoiceTTSUrl(text, lang = 'hi', voice = 'Kore') {
-    return `${this.baseUrl}/voice/tts?text=${encodeURIComponent(text.trim())}&lang=${encodeURIComponent(lang)}&voice=${encodeURIComponent(voice)}`;
+  getVoiceTTSUrl(text, lang = 'hi', gender = 'female') {
+    return `${this.baseUrl}/voice/tts?text=${encodeURIComponent(text.trim())}&lang=${encodeURIComponent(lang)}&gender=${encodeURIComponent(gender)}`;
+  }
+
+  async translateText(text, sourceLang = 'en', targetLang = 'hi') {
+    return this.request('/voice/translate', {
+      method: 'POST',
+      body: JSON.stringify({
+        text,
+        source_lang: sourceLang,
+        target_lang: targetLang
+      })
+    });
   }
 
   // Physician

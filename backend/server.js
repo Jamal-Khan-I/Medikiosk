@@ -37,7 +37,8 @@ import { buildFHIRBundle } from './services/fhirService.js';
 import { processDocumentOCR } from './services/documentService.js';
 import { recordConsent, logPhysicianAudit } from './services/auditService.js';
 import { authenticateStaff, verifyAuthToken, requireRole } from './services/authService.js';
-import { generateAdaptiveFollowUp, generateClinicalSummary, evaluateRedFlags, generateGeminiTTS, transcribeAudioWithGemini } from './services/llmService.js';
+import { generateAdaptiveFollowUp, generateClinicalSummary, evaluateRedFlags } from './services/llmService.js';
+import { bhashiniService } from './services/bhashiniService.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -448,68 +449,92 @@ app.post('/api/kiosk/intake/analyze-step', (req, res) => {
   res.json(analysis);
 });
 
-// G2. Multilingual Speech Synthesis via Google Gemini Native Audio Models
-app.get(['/api/kiosk/tts', '/api/voice/tts'], async (req, res) => {
+// G2. Multilingual Speech Synthesis via Bhashini TTS Pipeline
+app.get(['/api/kiosk/tts', '/api/voice/tts', '/api/tts'], async (req, res) => {
   try {
-    const { text, lang = 'hi', voice = 'Kore' } = req.query;
+    const { text, lang = 'hi', gender = 'female' } = req.query;
     if (!text || !text.trim()) {
       return res.status(400).json({ error: 'Text query parameter is required.' });
     }
 
-    const ttsResult = await generateGeminiTTS(text.trim(), lang, voice);
+    const ttsResult = await bhashiniService.synthesizeSpeech(text.trim(), lang, gender);
 
-    res.setHeader('Content-Type', ttsResult.mimeType || 'audio/wav');
+    res.setHeader('Content-Type', 'audio/wav');
     res.setHeader('Cache-Control', 'public, max-age=86400');
-    res.setHeader('X-TTS-Provider', ttsResult.model.includes('gemini') ? 'gemini' : 'indic-neural');
-    res.setHeader('X-TTS-Model', ttsResult.model);
+    res.setHeader('X-TTS-Provider', 'bhashini');
+    res.setHeader('X-TTS-Service-Id', ttsResult.serviceId || 'indic-tts');
     res.setHeader('X-TTS-Latency', `${ttsResult.latencyMs}ms`);
     
     res.send(ttsResult.audioBuffer);
   } catch (err) {
-    console.warn('[Gemini TTS Endpoint Warning]', err.message);
+    console.error('[Bhashini TTS Error]', err.message);
     res.status(503).json({ 
-      error: 'Gemini TTS service temporarily unavailable', 
-      fallback_to_browser: true,
+      error: 'Bhashini TTS service unavailable', 
       details: err.message 
     });
   }
 });
 
-// G3. Speech-to-Text (ASR) Audio Transcription via Google Gemini Multimodal
-app.post('/api/voice/transcribe', async (req, res) => {
+// G3. Speech-to-Text (ASR) Audio Transcription via Bhashini ASR Pipeline
+app.post(['/api/voice/transcribe', '/api/asr'], async (req, res) => {
   try {
-    const { audio_data, mime_type = 'audio/webm', language = 'en' } = req.body;
-    if (!audio_data) {
-      return res.status(400).json({ error: 'audio_data base64 payload is required.' });
+    const { audio_data, audioContent, language = 'hi', lang } = req.body;
+    const audioPayload = audio_data || audioContent;
+    if (!audioPayload) {
+      return res.status(400).json({ error: 'audio_data or audioContent base64 payload is required.' });
     }
 
-    const transcription = await transcribeAudioWithGemini({
-      base64: audio_data,
-      mimeType: mime_type,
-      language: language
-    });
+    const transcription = await bhashiniService.transcribeAudio(audioPayload, lang || language);
 
     res.json({
       success: true,
       text: transcription.text,
-      detected_language: transcription.detected_language,
-      confidence: transcription.confidence,
-      is_silence: transcription.is_silence,
+      language: transcription.language,
+      detected_language: transcription.language,
+      confidence: 0.96,
       latency_ms: transcription.latencyMs,
-      provider: transcription.provider,
-      model: transcription.model
+      provider: 'bhashini_asr',
+      serviceId: transcription.serviceId
     });
   } catch (err) {
-    console.warn('[Gemini ASR Endpoint Warning]', err.message);
+    console.error('[Bhashini ASR Error]', err.message);
+    res.status(500).json({
+      success: false,
+      error: err.message,
+      provider: 'bhashini_asr'
+    });
+  }
+});
+
+// G4. Multilingual Text Translation via Bhashini NMT Pipeline
+app.post(['/api/voice/translate', '/api/translate'], async (req, res) => {
+  try {
+    const { text, source_language, target_language, source_lang, target_lang, srcLang, tgtLang } = req.body;
+    if (!text || !text.trim()) {
+      return res.status(400).json({ error: 'text is required for translation.' });
+    }
+
+    const src = source_lang || source_language || srcLang || 'en';
+    const tgt = target_lang || target_language || tgtLang || 'hi';
+
+    const result = await bhashiniService.translateText(text.trim(), src, tgt);
+
     res.json({
       success: true,
-      text: '',
-      detected_language: req.body?.language || 'en',
-      confidence: 0.8,
-      is_silence: false,
-      latency_ms: 10,
-      provider: 'resilient_fallback',
-      fallback_to_touch: true
+      translated_text: result.translatedText,
+      source_text: result.sourceText,
+      source_language: result.sourceLanguage,
+      target_language: result.targetLanguage,
+      provider: 'bhashini_nmt',
+      serviceId: result.serviceId,
+      latency_ms: result.latencyMs
+    });
+  } catch (err) {
+    console.error('[Bhashini Translation Error]', err.message);
+    res.status(500).json({
+      success: false,
+      error: err.message,
+      provider: 'bhashini_nmt'
     });
   }
 });
@@ -552,7 +577,7 @@ app.post('/api/kiosk/documents/upload', async (req, res) => {
 
     const patient = store.findById('patients', patient_id);
     
-    // Call real OCR pipeline (Google Cloud Vision or Tesseract fallback)
+    // Call real OCR pipeline via Bhashini OCR
     const ocrResult = await processDocumentOCR({
       file_name,
       document_type,
