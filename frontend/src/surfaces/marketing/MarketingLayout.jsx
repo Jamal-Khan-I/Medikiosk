@@ -21,11 +21,11 @@ export default function MarketingLayout({ activeTab, onSelectTab, onLaunchKiosk,
         borderBottom: '1px solid var(--border-light)',
         padding: '16px 0'
       }}>
-        <div className="container-custom" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="container-custom" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           {/* Brand */}
           <div 
             onClick={() => onSelectTab('home')}
-            style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', flexShrink: 0 }}
           >
             <div style={{
               width: '36px',
@@ -46,21 +46,23 @@ export default function MarketingLayout({ activeTab, onSelectTab, onLaunchKiosk,
           </div>
 
           {/* Navigation Links */}
-          <nav style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <nav className="tabs-scrollable" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: 0, overflowX: 'auto', maxWidth: '100%' }}>
             {navItems.map(item => (
               <button
                 key={item.id}
                 onClick={() => onSelectTab(item.id)}
                 style={{
-                  padding: '8px 16px',
+                  padding: '8px 14px',
                   borderRadius: 'var(--radius-pill)',
                   border: 'none',
                   backgroundColor: activeTab === item.id ? 'var(--mist-gray)' : 'transparent',
                   color: activeTab === item.id ? 'var(--ink-black)' : 'var(--slate-gray)',
                   fontWeight: activeTab === item.id ? 600 : 400,
-                  fontSize: '0.9rem',
+                  fontSize: '0.86rem',
                   cursor: 'pointer',
-                  transition: 'all 0.15s ease'
+                  transition: 'all 0.15s ease',
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap'
                 }}
               >
                 {item.label}

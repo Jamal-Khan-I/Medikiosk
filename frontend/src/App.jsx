@@ -30,39 +30,45 @@ export default function App() {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       
       {/* Top Surface Switcher Banner */}
-      <div style={{
-        backgroundColor: '#17191c',
-        color: '#fff',
-        padding: '8px 24px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        fontSize: '0.82rem',
-        borderBottom: '1px solid #2a2e37',
-        zIndex: 50
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="badge-pill badge-peach" style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
-            MediKiosk OS
-          </span>
-          <span style={{ color: 'var(--slate-light)' }}>Connected Clinical Surfaces:</span>
+      <div className="surface-switcher-bar">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+          <button
+            onClick={() => setActiveSurface('MARKETING')}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '6px 4px',
+              minHeight: '44px',
+              display: 'inline-flex',
+              alignItems: 'center'
+            }}
+            title="Return to MediKiosk Overview"
+          >
+            <span className="badge-pill badge-peach" style={{ fontSize: '0.68rem', padding: '4px 8px' }}>
+              MediKiosk OS
+            </span>
+          </button>
+          <span style={{ color: 'var(--slate-light)', fontSize: '0.78rem' }}>Connected Surfaces:</span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-
+        <div className="surface-switcher-links">
           <button
             onClick={() => setActiveSurface('KIOSK')}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '5px',
-              padding: '5px 12px',
+              padding: '6px 12px',
               borderRadius: 'var(--radius-pill)',
               border: 'none',
               backgroundColor: activeSurface === 'KIOSK' ? 'var(--blush-peach)' : 'transparent',
               color: activeSurface === 'KIOSK' ? 'var(--sienna-brown)' : 'var(--slate-light)',
               cursor: 'pointer',
-              fontWeight: activeSurface === 'KIOSK' ? 600 : 400
+              fontWeight: activeSurface === 'KIOSK' ? 600 : 400,
+              whiteSpace: 'nowrap',
+              fontSize: '0.8rem',
+              flexShrink: 0
             }}
           >
             <Tablet size={13} />
@@ -75,17 +81,20 @@ export default function App() {
               display: 'flex',
               alignItems: 'center',
               gap: '5px',
-              padding: '5px 12px',
+              padding: '6px 12px',
               borderRadius: 'var(--radius-pill)',
               border: 'none',
               backgroundColor: activeSurface === 'PHYSICIAN' ? 'rgba(255,255,255,0.2)' : 'transparent',
               color: activeSurface === 'PHYSICIAN' ? '#fff' : 'var(--slate-light)',
               cursor: 'pointer',
-              fontWeight: activeSurface === 'PHYSICIAN' ? 600 : 400
+              fontWeight: activeSurface === 'PHYSICIAN' ? 600 : 400,
+              whiteSpace: 'nowrap',
+              fontSize: '0.8rem',
+              flexShrink: 0
             }}
           >
             <Stethoscope size={13} />
-            <span>B: Physician Workstation</span>
+            <span>B: Physician</span>
           </button>
 
           <button
@@ -94,17 +103,20 @@ export default function App() {
               display: 'flex',
               alignItems: 'center',
               gap: '5px',
-              padding: '5px 12px',
+              padding: '6px 12px',
               borderRadius: 'var(--radius-pill)',
               border: 'none',
               backgroundColor: activeSurface === 'ADMIN' ? 'rgba(255,255,255,0.2)' : 'transparent',
               color: activeSurface === 'ADMIN' ? '#fff' : 'var(--slate-light)',
               cursor: 'pointer',
-              fontWeight: activeSurface === 'ADMIN' ? 600 : 400
+              fontWeight: activeSurface === 'ADMIN' ? 600 : 400,
+              whiteSpace: 'nowrap',
+              fontSize: '0.8rem',
+              flexShrink: 0
             }}
           >
             <Building2 size={13} />
-            <span>C: Hospital Admin</span>
+            <span>C: Admin</span>
           </button>
 
           <button
@@ -113,13 +125,16 @@ export default function App() {
               display: 'flex',
               alignItems: 'center',
               gap: '5px',
-              padding: '5px 12px',
+              padding: '6px 12px',
               borderRadius: 'var(--radius-pill)',
               border: 'none',
               backgroundColor: activeSurface === 'TRIAGE' ? 'var(--alert-red-bg)' : 'transparent',
               color: activeSurface === 'TRIAGE' ? 'var(--alert-red-text)' : 'var(--slate-light)',
               cursor: 'pointer',
-              fontWeight: activeSurface === 'TRIAGE' ? 600 : 400
+              fontWeight: activeSurface === 'TRIAGE' ? 600 : 400,
+              whiteSpace: 'nowrap',
+              fontSize: '0.8rem',
+              flexShrink: 0
             }}
           >
             <ShieldAlert size={13} />

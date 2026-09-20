@@ -320,3 +320,266 @@ input[type=number] {
 .animate-pulse-red {
   animation: pulse-red 1.5s infinite ease-in-out;
 }
+
+/* ==========================================================================
+   RESPONSIVE UTILITIES & CROSS-DEVICE ADAPTATIONS
+   ========================================================================== */
+
+/* Prevent accidental horizontal scrolling across all screens */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+}
+
+/* Fluid Form Grid (2 col on desktop/tablet, 1 col on mobile) */
+.form-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+/* Responsive Table Wrapper */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Consent Row & 44px Touch Target */
+.consent-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-light);
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+.consent-checkbox-wrap {
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.consent-checkbox {
+  width: 24px;
+  height: 24px;
+  accent-color: var(--ink-black);
+  cursor: pointer;
+}
+
+/* Surface Switcher Banner */
+.surface-switcher-bar {
+  background-color: #17191c;
+  color: #fff;
+  padding: 8px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  border-bottom: 1px solid #2a2e37;
+  z-index: 50;
+  gap: 12px;
+}
+.surface-switcher-links {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.surface-switcher-links::-webkit-scrollbar {
+  display: none;
+}
+
+/* Kiosk Layout Utilities */
+.kiosk-main-content {
+  flex: 1;
+  padding: 32px 24px;
+  max-width: 980px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.kiosk-lang-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+/* Workstation Layouts (Physician & Triage) */
+.split-workstation-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  height: calc(100vh - 65px);
+}
+.split-sidebar-panel {
+  width: 350px;
+  background-color: var(--paper-white);
+  border-right: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  flex-shrink: 0;
+}
+.split-main-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  padding: 24px 32px;
+}
+
+.tabs-scrollable {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+.tabs-scrollable::-webkit-scrollbar {
+  display: none;
+}
+
+/* ==========================================================================
+   BREAKPOINTS: TABLET LANDSCAPE & PORTRAIT (<= 1024px)
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .container-custom {
+    padding: 0 var(--space-4);
+  }
+  .card-steep, .card-steep-fog, .card-steep-peach {
+    padding: var(--space-6);
+  }
+  .section-padding {
+    padding: var(--space-10) 0;
+  }
+  .kiosk-lang-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+  }
+  .split-workstation-layout {
+    flex-direction: column;
+    height: auto;
+    min-height: calc(100vh - 65px);
+    overflow: visible;
+  }
+  .split-sidebar-panel {
+    width: 100%;
+    height: auto;
+    max-height: none;
+    border-right: none;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .split-main-panel {
+    width: 100%;
+    height: auto;
+    padding: 16px 14px;
+    overflow-y: visible;
+  }
+}
+
+/* ==========================================================================
+   BREAKPOINTS: TABLET PORTRAIT & PHABLETS (<= 768px)
+   ========================================================================== */
+@media (max-width: 768px) {
+  h1 { font-size: clamp(1.75rem, 5.5vw, 2.25rem); }
+  h2 { font-size: clamp(1.4rem, 4.5vw, 1.85rem); }
+  h3 { font-size: clamp(1.15rem, 3.5vw, 1.45rem); }
+  
+  .surface-switcher-bar {
+    padding: 8px 12px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .surface-switcher-links {
+    width: 100%;
+    padding-bottom: 4px;
+  }
+  .surface-switcher-links button {
+    min-height: 44px;
+    padding: 10px 14px !important;
+    font-size: 0.85rem !important;
+  }
+
+  .kiosk-main-content {
+    padding: 20px 16px;
+  }
+
+  .kiosk-lang-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+  }
+
+  .form-grid-2col {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+
+  .btn-pill {
+    padding: 11px 20px;
+    font-size: 0.92rem;
+    min-height: 44px;
+  }
+
+  .kiosk-touch-target {
+    min-height: 48px;
+    min-width: 48px;
+  }
+}
+
+/* ==========================================================================
+   BREAKPOINTS: MOBILE PHONES & BUDGET ANDROID (<= 480px, down to 360px)
+   ========================================================================== */
+@media (max-width: 480px) {
+  html {
+    font-size: 15px;
+  }
+  
+  body {
+    font-size: 1rem; /* >= 16px equivalent with 1rem base */
+  }
+
+  .card-steep, .card-steep-fog, .card-steep-peach {
+    padding: var(--space-4);
+    border-radius: var(--radius-subtle);
+  }
+
+  .kiosk-main-content {
+    padding: 16px 12px;
+  }
+
+  .kiosk-lang-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .input-steep {
+    font-size: 1rem;
+    padding: 12px 14px;
+  }
+
+  .btn-pill {
+    min-height: 44px;
+    padding: 10px 16px;
+    font-size: 0.88rem;
+  }
+
+  .kiosk-touch-target {
+    min-height: 46px;
+    min-width: 46px;
+    font-size: 1rem;
+  }
+}

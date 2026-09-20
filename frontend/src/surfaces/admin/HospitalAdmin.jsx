@@ -176,12 +176,12 @@ export default function HospitalAdmin({ onExitAdmin }) {
         </div>
       </header>
 
-      {/* Navigation Sub-bar */}
-      <div style={{ padding: '12px 32px', backgroundColor: '#fff', borderBottom: '1px solid var(--border-light)', display: 'flex', gap: '10px' }}>
+      {/* Administrative Tabs */}
+      <div className="tabs-scrollable" style={{ padding: '12px 20px', backgroundColor: '#fff', borderBottom: '1px solid var(--border-light)', marginBottom: 0 }}>
         <button
           onClick={() => setActiveTab('patients')}
           className={`btn-pill ${activeTab === 'patients' ? 'btn-pill-primary' : 'btn-pill-secondary'}`}
-          style={{ padding: '8px 20px', fontSize: '0.86rem' }}
+          style={{ padding: '8px 20px', fontSize: '0.86rem', flexShrink: 0, whiteSpace: 'nowrap' }}
         >
           <Activity size={16} />
           <span>Live Patient OPD Inflow ({adminPatients.length})</span>
@@ -190,7 +190,7 @@ export default function HospitalAdmin({ onExitAdmin }) {
         <button
           onClick={() => setActiveTab('staff')}
           className={`btn-pill ${activeTab === 'staff' ? 'btn-pill-primary' : 'btn-pill-secondary'}`}
-          style={{ padding: '8px 20px', fontSize: '0.86rem' }}
+          style={{ padding: '8px 20px', fontSize: '0.86rem', flexShrink: 0, whiteSpace: 'nowrap' }}
         >
           <Users size={16} />
           <span>Staff & Physician Access ({staff.length})</span>
@@ -199,7 +199,7 @@ export default function HospitalAdmin({ onExitAdmin }) {
         <button
           onClick={() => setActiveTab('analytics')}
           className={`btn-pill ${activeTab === 'analytics' ? 'btn-pill-primary' : 'btn-pill-secondary'}`}
-          style={{ padding: '8px 20px', fontSize: '0.86rem' }}
+          style={{ padding: '8px 20px', fontSize: '0.86rem', flexShrink: 0, whiteSpace: 'nowrap' }}
         >
           <BarChart3 size={16} />
           <span>Operational Throughput</span>
@@ -207,7 +207,7 @@ export default function HospitalAdmin({ onExitAdmin }) {
       </div>
 
       {/* Content Viewport */}
-      <main style={{ flex: 1, padding: '32px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
+      <main style={{ flex: 1, padding: '24px 16px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         
         {/* TAB 1: LIVE PATIENT INFLOW & REGISTRY */}
         {activeTab === 'patients' && (
@@ -288,7 +288,8 @@ export default function HospitalAdmin({ onExitAdmin }) {
 
             {/* Patients Table */}
             <div className="card-steep" style={{ padding: '0', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem', textAlign: 'left' }}>
+              <div className="table-responsive">
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem', textAlign: 'left' }}>
                 <thead style={{ backgroundColor: 'var(--fog-white)', borderBottom: '1px solid var(--border-light)' }}>
                   <tr>
                     <th style={{ padding: '14px 18px', fontWeight: 600 }}>Token</th>
@@ -390,6 +391,7 @@ export default function HospitalAdmin({ onExitAdmin }) {
                   )}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         )}
@@ -397,7 +399,7 @@ export default function HospitalAdmin({ onExitAdmin }) {
         {/* TAB 2: STAFF & PHYSICIAN ACCESS */}
         {activeTab === 'staff' && (
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '14px' }}>
               <div>
                 <h2>Clinical & Administrative Accounts</h2>
                 <p style={{ color: 'var(--slate-gray)', fontSize: '0.92rem' }}>
@@ -411,7 +413,8 @@ export default function HospitalAdmin({ onExitAdmin }) {
             </div>
 
             <div className="card-steep" style={{ padding: '0', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem', textAlign: 'left' }}>
+              <div className="table-responsive">
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem', textAlign: 'left' }}>
                 <thead style={{ backgroundColor: 'var(--fog-white)', borderBottom: '1px solid var(--border-light)' }}>
                   <tr>
                     <th style={{ padding: '14px 20px', fontWeight: 600 }}>Staff Name</th>
@@ -498,6 +501,7 @@ export default function HospitalAdmin({ onExitAdmin }) {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         )}

@@ -1061,27 +1061,29 @@ export default function PatientKiosk({ onExitKiosk }) {
     }}>
       {/* Header */}
       <header style={{
-        padding: '16px 24px',
+        padding: '12px 20px',
         backgroundColor: 'var(--ink-black)',
         color: '#fff',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '10px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--blush-peach)', color: 'var(--sienna-brown)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: '200px' }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--blush-peach)', color: 'var(--sienna-brown)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <HeartPulse size={18} />
           </div>
           <div>
-            <div style={{ fontWeight: 600, fontSize: '1.05rem' }}>MediKiosk OPD Terminal — KIOSK 01</div>
-            <div style={{ fontSize: '0.74rem', color: 'var(--slate-light)' }}>Ground Floor OPD Atrium — East Wing</div>
+            <div style={{ fontWeight: 600, fontSize: '0.98rem' }}>MediKiosk OPD Terminal — KIOSK 01</div>
+            <div style={{ fontSize: '0.72rem', color: 'var(--slate-light)' }}>Ground Floor OPD Atrium — East Wing</div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           {tokenNumber && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(255,255,255,0.1)', padding: '6px 14px', borderRadius: 'var(--radius-pill)', color: 'var(--blush-peach)', fontWeight: 600, fontSize: '0.86rem' }}>
-              <Ticket size={16} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(255,255,255,0.1)', padding: '6px 12px', borderRadius: 'var(--radius-pill)', color: 'var(--blush-peach)', fontWeight: 600, fontSize: '0.82rem' }}>
+              <Ticket size={15} />
               <span>Token: {tokenNumber}</span>
             </div>
           )}
@@ -1095,17 +1097,18 @@ export default function PatientKiosk({ onExitKiosk }) {
               backgroundColor: isPlayingAudio ? 'rgba(251, 225, 209, 0.2)' : 'rgba(255,255,255,0.1)',
               color: isPlayingAudio ? 'var(--blush-peach)' : 'var(--slate-light)',
               border: 'none',
-              padding: '6px 14px',
+              padding: '6px 12px',
               borderRadius: 'var(--radius-pill)',
               cursor: 'pointer',
-              fontSize: '0.82rem'
+              fontSize: '0.8rem',
+              minHeight: '44px'
             }}
           >
             {isPlayingAudio ? <Volume2 size={16} /> : <VolumeX size={16} />}
             <span>{isPlayingAudio ? 'Voice Guide: ON' : 'Voice Guide: OFF'}</span>
           </button>
 
-          <button onClick={onExitKiosk} className="btn-pill btn-pill-outline-white btn-pill-sm">
+          <button onClick={onExitKiosk} className="btn-pill btn-pill-outline-white btn-pill-sm" style={{ minHeight: '44px' }}>
             Exit Kiosk
           </button>
         </div>
@@ -1116,12 +1119,14 @@ export default function PatientKiosk({ onExitKiosk }) {
         <div style={{
           backgroundColor: 'var(--alert-red-bright)',
           color: '#fff',
-          padding: '12px 24px',
+          padding: '12px 20px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '8px',
           fontWeight: 500,
-          fontSize: '0.92rem'
+          fontSize: '0.9rem'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <AlertTriangle size={20} className="animate-pulse-red" />
@@ -1136,22 +1141,22 @@ export default function PatientKiosk({ onExitKiosk }) {
       )}
 
       {/* Viewport */}
-      <main style={{ flex: 1, padding: '32px 24px', maxWidth: '980px', margin: '0 auto', width: '100%' }}>
+      <main className="kiosk-main-content">
         
         {/* STEP 1: LANGUAGE SELECTION */}
         {step === 'LANG' && (
           <div>
-            <div style={{ textAlign: 'center', marginBottom: '36px' }}>
-              <span className="badge-pill badge-peach" style={{ marginBottom: '14px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+              <span className="badge-pill badge-peach" style={{ marginBottom: '12px' }}>
                 Step 1 of 6
               </span>
-              <h1 style={{ marginBottom: '10px' }}>Select Your Preferred Language</h1>
-              <p style={{ color: 'var(--slate-gray)', fontSize: '1.1rem' }}>
+              <h1 style={{ marginBottom: '8px' }}>Select Your Preferred Language</h1>
+              <p style={{ color: 'var(--slate-gray)', fontSize: '1.05rem' }}>
                 Touch your language below to start the voice-guided clinical check-in
               </p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '16px', marginBottom: '32px' }}>
+            <div className="kiosk-lang-grid">
               {SUPPORTED_LANGUAGES.map((lang) => (
                 <button
                   key={lang.code}
@@ -1166,18 +1171,19 @@ export default function PatientKiosk({ onExitKiosk }) {
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    padding: '24px',
+                    padding: '20px 14px',
                     borderColor: selectedLang === lang.code ? 'var(--ink-black)' : 'var(--border-light)',
                     backgroundColor: selectedLang === lang.code ? 'var(--peach-subtle)' : '#fff',
                     textAlign: 'center',
-                    transition: 'all 0.15s ease'
+                    transition: 'all 0.15s ease',
+                    minHeight: '80px'
                   }}
                 >
-                  <span style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--ink-black)', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '1.4rem', fontWeight: 600, color: 'var(--ink-black)', marginBottom: '4px' }}>
                     {lang.native}
                   </span>
-                  <span style={{ fontSize: '0.88rem', color: 'var(--slate-gray)' }}>{lang.name}</span>
-                  <span style={{ fontSize: '0.78rem', color: 'var(--sienna-brown)', marginTop: '6px' }}>
+                  <span style={{ fontSize: '0.86rem', color: 'var(--slate-gray)' }}>{lang.name}</span>
+                  <span style={{ fontSize: '0.76rem', color: 'var(--sienna-brown)', marginTop: '4px' }}>
                     {lang.greeting}
                   </span>
                 </button>
@@ -1188,20 +1194,20 @@ export default function PatientKiosk({ onExitKiosk }) {
 
         {/* STEP 2: SCREEN 1 — ONE QUESTION ONLY: HAVE YOU VISITED BEFORE OR HAVE ABHA? */}
         {step === 'IDENTITY_QUESTION' && (
-          <div style={{ maxWidth: '720px', margin: '0 auto', textAlign: 'center', padding: '24px 0' }}>
-            <span className="badge-pill badge-peach" style={{ marginBottom: '16px' }}>
+          <div style={{ maxWidth: '720px', margin: '0 auto', textAlign: 'center', padding: '16px 0' }}>
+            <span className="badge-pill badge-peach" style={{ marginBottom: '14px' }}>
               {t('common:step_counter', { current: 2, total: 6 })}
             </span>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}>
-              <h1 style={{ fontSize: '2.2rem', margin: 0, color: 'var(--ink-black)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
+              <h1 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.2rem)', margin: 0, color: 'var(--ink-black)' }}>
                 {t('identity:screen1_question')}
               </h1>
             </div>
-            <p style={{ color: 'var(--slate-gray)', fontSize: '1.1rem', marginBottom: '40px' }}>
+            <p style={{ color: 'var(--slate-gray)', fontSize: '1.05rem', marginBottom: '32px' }}>
               {t('identity:screen1_subtitle')}
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', marginBottom: '32px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '32px' }}>
               <div
                 onClick={() => {
                   setIdentityError('');
@@ -1471,7 +1477,7 @@ export default function PatientKiosk({ onExitKiosk }) {
                   />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="form-grid-2col">
                   <div>
                     <label style={{ display: 'block', fontSize: '0.86rem', fontWeight: 600, marginBottom: '6px' }}>
                       {t('identity:dob_label')} <span style={{ color: 'var(--alert-red-bright)' }}>*</span>
@@ -1532,7 +1538,7 @@ export default function PatientKiosk({ onExitKiosk }) {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="form-grid-2col">
                   <div>
                     <label style={{ display: 'block', fontSize: '0.86rem', fontWeight: 600, marginBottom: '6px' }}>
                       {t('identity:gender_label')} <span style={{ color: 'var(--alert-red-bright)' }}>*</span>
@@ -1703,71 +1709,79 @@ export default function PatientKiosk({ onExitKiosk }) {
               </button>
             </div>
 
-            <div className="card-steep" style={{ padding: '28px', marginBottom: '24px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '14px', borderBottom: '1px solid var(--border-light)' }}>
-                  <div>
+            <div className="card-steep" style={{ padding: '24px', marginBottom: '24px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <label className="consent-row">
+                  <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: '0.98rem' }}>
                       {t('consent:consent_intake_title')} <span style={{ color: 'var(--alert-red-bright)' }}>{t('consent:mandatory_tag')}</span>
                     </div>
-                    <div style={{ fontSize: '0.84rem', color: 'var(--slate-gray)', marginTop: '2px' }}>
+                    <div style={{ fontSize: '0.84rem', color: 'var(--slate-gray)', marginTop: '2px', lineHeight: 1.45 }}>
                       {t('consent:consent_intake_desc')}
                     </div>
                   </div>
-                  <input
-                    type="checkbox"
-                    checked={consents.consent_intake}
-                    onChange={(e) => setConsents({ ...consents, consent_intake: e.target.checked })}
-                    style={{ width: '22px', height: '22px', accentColor: 'var(--ink-black)', cursor: 'pointer' }}
-                  />
-                </div>
+                  <div className="consent-checkbox-wrap">
+                    <input
+                      type="checkbox"
+                      checked={consents.consent_intake}
+                      onChange={(e) => setConsents({ ...consents, consent_intake: e.target.checked })}
+                      className="consent-checkbox"
+                    />
+                  </div>
+                </label>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '14px', borderBottom: '1px solid var(--border-light)' }}>
-                  <div>
+                <label className="consent-row">
+                  <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: '0.98rem' }}>
                       {t('consent:consent_ocr_title')} <span style={{ color: 'var(--alert-red-bright)' }}>{t('consent:mandatory_tag')}</span>
                     </div>
-                    <div style={{ fontSize: '0.84rem', color: 'var(--slate-gray)', marginTop: '2px' }}>
+                    <div style={{ fontSize: '0.84rem', color: 'var(--slate-gray)', marginTop: '2px', lineHeight: 1.45 }}>
                       {t('consent:consent_ocr_desc')}
                     </div>
                   </div>
-                  <input
-                    type="checkbox"
-                    checked={consents.consent_ocr}
-                    onChange={(e) => setConsents({ ...consents, consent_ocr: e.target.checked })}
-                    style={{ width: '22px', height: '22px', accentColor: 'var(--ink-black)', cursor: 'pointer' }}
-                  />
-                </div>
+                  <div className="consent-checkbox-wrap">
+                    <input
+                      type="checkbox"
+                      checked={consents.consent_ocr}
+                      onChange={(e) => setConsents({ ...consents, consent_ocr: e.target.checked })}
+                      className="consent-checkbox"
+                    />
+                  </div>
+                </label>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '14px', borderBottom: '1px solid var(--border-light)' }}>
-                  <div>
+                <label className="consent-row">
+                  <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: '0.98rem' }}>{t('consent:consent_abdm_title')}</div>
-                    <div style={{ fontSize: '0.84rem', color: 'var(--slate-gray)', marginTop: '2px' }}>
+                    <div style={{ fontSize: '0.84rem', color: 'var(--slate-gray)', marginTop: '2px', lineHeight: 1.45 }}>
                       {t('consent:consent_abdm_desc')}
                     </div>
                   </div>
-                  <input
-                    type="checkbox"
-                    checked={consents.consent_abdm_sync}
-                    onChange={(e) => setConsents({ ...consents, consent_abdm_sync: e.target.checked })}
-                    style={{ width: '22px', height: '22px', accentColor: 'var(--ink-black)', cursor: 'pointer' }}
-                  />
-                </div>
+                  <div className="consent-checkbox-wrap">
+                    <input
+                      type="checkbox"
+                      checked={consents.consent_abdm_sync}
+                      onChange={(e) => setConsents({ ...consents, consent_abdm_sync: e.target.checked })}
+                      className="consent-checkbox"
+                    />
+                  </div>
+                </label>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
+                <label className="consent-row" style={{ borderBottom: 'none', paddingBottom: 0 }}>
+                  <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: '0.98rem' }}>{t('consent:consent_research_title')}</div>
-                    <div style={{ fontSize: '0.84rem', color: 'var(--slate-gray)', marginTop: '2px' }}>
+                    <div style={{ fontSize: '0.84rem', color: 'var(--slate-gray)', marginTop: '2px', lineHeight: 1.45 }}>
                       {t('consent:consent_research_desc')}
                     </div>
                   </div>
-                  <input
-                    type="checkbox"
-                    checked={consents.consent_anonymized_research}
-                    onChange={(e) => setConsents({ ...consents, consent_anonymized_research: e.target.checked })}
-                    style={{ width: '22px', height: '22px', accentColor: 'var(--ink-black)', cursor: 'pointer' }}
-                  />
-                </div>
+                  <div className="consent-checkbox-wrap">
+                    <input
+                      type="checkbox"
+                      checked={consents.consent_anonymized_research}
+                      onChange={(e) => setConsents({ ...consents, consent_anonymized_research: e.target.checked })}
+                      className="consent-checkbox"
+                    />
+                  </div>
+                </label>
               </div>
             </div>
 
@@ -1906,7 +1920,7 @@ export default function PatientKiosk({ onExitKiosk }) {
 
               {/* Voice & Touch Interactive Area */}
               <div style={{ marginBottom: '24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px', backgroundColor: 'var(--fog-white)', borderRadius: '16px', marginBottom: '18px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px', backgroundColor: 'var(--fog-white)', borderRadius: '16px', marginBottom: '18px', flexWrap: 'wrap' }}>
                   <button
                     onClick={toggleVoiceRecording}
                     disabled={isTranscribing}
@@ -2243,9 +2257,10 @@ export default function PatientKiosk({ onExitKiosk }) {
                 alignItems: 'center',
                 justifyContent: 'center',
                 zIndex: 100,
-                padding: '24px'
+                padding: '16px',
+                overflowY: 'auto'
               }}>
-                <div className="card-steep" style={{ maxWidth: '680px', width: '100%', padding: '28px', backgroundColor: 'var(--ink-black)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)' }}>
+                <div className="card-steep" style={{ maxWidth: '680px', width: '100%', maxHeight: '92vh', overflowY: 'auto', padding: '22px', backgroundColor: 'var(--ink-black)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)' }}>
                   
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -2269,7 +2284,7 @@ export default function PatientKiosk({ onExitKiosk }) {
                   <div style={{
                     position: 'relative',
                     width: '100%',
-                    height: '360px',
+                    height: 'clamp(200px, 36vh, 360px)',
                     backgroundColor: '#000',
                     borderRadius: '16px',
                     overflow: 'hidden',
@@ -2510,7 +2525,7 @@ export default function PatientKiosk({ onExitKiosk }) {
 
                 <div>
                   <strong>{t('review:sec3_title')}</strong>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '6px', backgroundColor: 'var(--fog-white)', padding: '14px', borderRadius: '12px', fontSize: '0.86rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', marginTop: '6px', backgroundColor: 'var(--fog-white)', padding: '14px', borderRadius: '12px', fontSize: '0.86rem' }}>
                     <div><strong>{t('review:site')}:</strong> {getLocalizedOption(answers.socrates_site, selectedLang) || t('review:not_localized')}</div>
                     <div><strong>{t('review:onset')}:</strong> {getLocalizedOption(answers.socrates_onset, selectedLang) || t('review:gradual')}</div>
                     <div><strong>{t('review:character')}:</strong> {getLocalizedOption(answers.socrates_character, selectedLang) || t('review:aching')}</div>

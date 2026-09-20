@@ -23,6 +23,18 @@ export default function TriageAlertSurface({ onExitTriage }) {
   const [alertToDelete, setAlertToDelete] = useState(null);
   const [isDeletingAlert, setIsDeletingAlert] = useState(false);
 
+  // Responsive state for tablet & mobile
+  const [isMobileScreen, setIsMobileScreen] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 1024);
+  const [triageView, setTriageView] = useState('list'); // 'list' | 'detail'
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileScreen(window.innerWidth <= 1024);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const fetchAlerts = async () => {
     try {
       const res = await api.getTriageAlerts();
@@ -97,49 +109,52 @@ export default function TriageAlertSurface({ onExitTriage }) {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--ink-black)', color: '#fff' }}>
       {/* Triage Alarm HUD Header */}
       <header style={{
-        padding: '16px 32px',
+        padding: '12px 20px',
         backgroundColor: '#0d0e10',
         borderBottom: '1px solid #2a2e37',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '10px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
-            width: '40px',
-            height: '40px',
+            width: '38px',
+            height: '38px',
             borderRadius: '50%',
             backgroundColor: activeAlerts.length > 0 ? 'var(--alert-red-bright)' : '#2a2e37',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#fff'
+            color: '#fff',
+            flexShrink: 0
           }}>
-            <ShieldAlert size={22} className={activeAlerts.length > 0 ? 'animate-pulse-red' : ''} />
+            <ShieldAlert size={20} className={activeAlerts.length > 0 ? 'animate-pulse-red' : ''} />
           </div>
           <div>
-            <div style={{ fontWeight: 600, fontSize: '1.15rem', letterSpacing: '-0.01em' }}>
+            <div style={{ fontWeight: 600, fontSize: '1.08rem', letterSpacing: '-0.01em' }}>
               Hospital Emergency & Parallel Triage HUD
             </div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--slate-light)' }}>
+            <div style={{ fontSize: '0.74rem', color: 'var(--slate-light)' }}>
               Sub-15ms Kiosk Clinical Red-Flag Stream • Rapid Response Station
             </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <span className="badge-pill" style={{
             backgroundColor: activeAlerts.length > 0 ? 'var(--alert-red-bright)' : 'var(--success-green-bright)',
             color: '#fff',
-            fontSize: '0.82rem',
-            padding: '6px 14px'
+            fontSize: '0.8rem',
+            padding: '6px 12px'
           }}>
             {activeAlerts.length} Active Emergencies
           </span>
           <button
             onClick={onExitTriage}
             className="btn-pill btn-pill-outline btn-pill-sm"
-            style={{ color: '#fff', borderColor: '#4a4f5c' }}
+            style={{ color: '#fff', borderColor: '#4a4f5c', minHeight: '38px' }}
           >
             Exit Triage HUD
           </button>
@@ -147,135 +162,154 @@ export default function TriageAlertSurface({ onExitTriage }) {
       </header>
 
       {/* Main HUD Viewport */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      <div className="split-workstation-layout">
         
-        {/* Left List of Alerts */}
-        <div style={{
-          width: '380px',
-          backgroundColor: '#121417',
-          borderRight: '1px solid #2a2e37',
-          display: 'flex',
-          flexDirection: 'column',
-          height: 'calc(100vh - 73px)'
-        }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid #2a2e37', fontSize: '0.88rem', fontWeight: 600, color: 'var(--slate-light)' }}>
-            Real-Time Kiosk Red Flags ({alerts.length})
-          </div>
+        {/* Left List of Alerts (Adapts to stacked cards on tablet & mobile) */}
+        {(!isMobileScreen || triageView === 'list') && (
+          <div className="split-sidebar-panel" style={{ backgroundColor: '#121417', borderColor: '#2a2e37' }}>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid #2a2e37', fontSize: '0.88rem', fontWeight: 600, color: 'var(--slate-light)' }}>
+              Real-Time Kiosk Red Flags ({alerts.length})
+            </div>
 
-          <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
-            {alerts.map((al) => {
-              const isSelected = selectedAlert?.id === al.id;
-              const isCritical = al.severity === 'CRITICAL';
-              return (
-                <div
-                  key={al.id}
-                  onClick={() => setSelectedAlert(al)}
-                  style={{
-                    padding: '16px',
-                    borderRadius: '16px',
-                    marginBottom: '10px',
-                    cursor: 'pointer',
-                    backgroundColor: isSelected ? '#22262f' : '#17191c',
-                    border: `1px solid ${isSelected ? (isCritical ? 'var(--alert-red-bright)' : 'var(--border-light)') : '#2a2e37'}`,
-                    boxShadow: isCritical && al.status === 'ACTIVE' ? 'var(--shadow-triage)' : 'none',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span className="badge-pill" style={{
-                        backgroundColor: al.status === 'ACTIVE' ? 'var(--alert-red-bright)' : '#2a2e37',
-                        color: '#fff',
-                        fontSize: '0.68rem'
-                      }}>
-                        {al.status}
-                      </span>
+            {isMobileScreen && alerts.length > 0 && (
+              <div style={{ padding: '8px 14px', backgroundColor: 'rgba(220, 38, 38, 0.15)', color: '#fca5a5', fontSize: '0.78rem', fontWeight: 500, borderBottom: '1px solid #2a2e37' }}>
+                Tap an emergency alert below to review vital clinical details.
+              </div>
+            )}
+
+            <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
+              {alerts.map((al) => {
+                const isSelected = selectedAlert?.id === al.id;
+                const isCritical = al.severity === 'CRITICAL';
+                return (
+                  <div
+                    key={al.id}
+                    onClick={() => {
+                      setSelectedAlert(al);
+                      if (isMobileScreen) setTriageView('detail');
+                    }}
+                    style={{
+                      padding: '16px',
+                      borderRadius: '16px',
+                      marginBottom: '10px',
+                      cursor: 'pointer',
+                      backgroundColor: isSelected ? '#22262f' : '#17191c',
+                      border: `1px solid ${isSelected ? (isCritical ? 'var(--alert-red-bright)' : 'var(--border-light)') : '#2a2e37'}`,
+                      boxShadow: isCritical && al.status === 'ACTIVE' ? 'var(--shadow-triage)' : 'none',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span className="badge-pill" style={{
+                          backgroundColor: al.status === 'ACTIVE' ? 'var(--alert-red-bright)' : '#2a2e37',
+                          color: '#fff',
+                          fontSize: '0.68rem'
+                        }}>
+                          {al.status}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '0.74rem', color: 'var(--slate-light)' }}>
+                          {new Date(al.created_at).toLocaleTimeString()}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setAlertToDelete(al);
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            padding: '3px 4px',
+                            cursor: 'pointer',
+                            color: 'var(--slate-light)',
+                            borderRadius: '6px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'color 0.15s ease'
+                          }}
+                          title="Delete triage alert"
+                          onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
+                          onMouseLeave={(e) => e.currentTarget.style.color = 'var(--slate-light)'}
+                          aria-label="Delete triage alert"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--slate-light)' }}>
-                        {new Date(al.created_at).toLocaleTimeString()}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setAlertToDelete(al);
-                        }}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          padding: '3px 5px',
-                          cursor: 'pointer',
-                          color: 'var(--slate-light)',
-                          borderRadius: '6px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          transition: 'color 0.15s ease'
-                        }}
-                        title="Remove triage alert record"
-                        onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
-                        onMouseLeave={(e) => e.currentTarget.style.color = 'var(--slate-light)'}
-                        aria-label="Delete alert"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+
+                    <div style={{ fontWeight: 600, fontSize: '0.96rem', marginBottom: '4px' }}>
+                      {al.patient_name}
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--blush-peach)', fontSize: '0.8rem', marginBottom: '6px' }}>
+                      <MapPin size={13} />
+                      <span>{al.kiosk_location}</span>
+                    </div>
+
+                    <div style={{ fontSize: '0.82rem', color: 'var(--slate-light)', lineHeight: 1.4 }}>
+                      {al.symptom_trigger}
                     </div>
                   </div>
-
-                  <div style={{ fontWeight: 600, fontSize: '0.98rem', color: '#fff', marginBottom: '4px' }}>
-                    {al.patient_name}
-                  </div>
-
-                  <div style={{ fontSize: '0.82rem', color: 'var(--blush-peach)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px' }}>
-                    <MapPin size={13} />
-                    <span>{al.kiosk_location}</span>
-                  </div>
-
-                  <div style={{ fontSize: '0.82rem', color: 'var(--slate-light)', lineHeight: 1.4 }}>
-                    {al.symptom_trigger}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Right Detail Pane */}
-        <div style={{ flex: 1, padding: '32px 48px', overflowY: 'auto', height: 'calc(100vh - 73px)' }}>
-          {selectedAlert ? (
-            <div style={{ maxWidth: '840px', margin: '0 auto' }}>
-              
-              {/* Emergency Banner */}
-              <div style={{
-                backgroundColor: selectedAlert.status === 'ACTIVE' ? 'rgba(220, 38, 38, 0.15)' : '#1a1d24',
-                border: `1px solid ${selectedAlert.status === 'ACTIVE' ? 'var(--alert-red-bright)' : '#2a2e37'}`,
-                borderRadius: '20px',
-                padding: '24px',
-                marginBottom: '28px',
-                display: 'flex',
-                alignItems: 'flex-start',
-                justifyContent: 'space-between'
-              }}>
-                <div>
-                  <span className="badge-pill badge-red" style={{ marginBottom: '12px' }}>
-                    {selectedAlert.severity} PRIORITY TRIAGE EVENT
-                  </span>
-                  <h2 style={{ fontSize: '1.8rem', color: '#fff', marginBottom: '6px' }}>
-                    {selectedAlert.patient_name}
-                  </h2>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--blush-peach)', fontSize: '0.95rem' }}>
-                    <MapPin size={16} />
-                    <strong>Location:</strong> {selectedAlert.kiosk_location}
+        {(!isMobileScreen || triageView === 'detail') && (
+          <div className="split-main-panel" style={{ padding: '24px 20px' }}>
+            {isMobileScreen && (
+              <button
+                type="button"
+                onClick={() => setTriageView('list')}
+                className="btn-pill btn-pill-outline btn-pill-sm"
+                style={{ alignSelf: 'flex-start', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px', color: '#fff', borderColor: '#4a4f5c', minHeight: '44px' }}
+              >
+                <ArrowLeft size={16} />
+                <span>Back to Emergencies ({alerts.length})</span>
+              </button>
+            )}
+
+            {selectedAlert ? (
+              <div style={{ maxWidth: '840px', margin: '0 auto', width: '100%' }}>
+                
+                {/* Emergency Banner */}
+                <div style={{
+                  backgroundColor: selectedAlert.status === 'ACTIVE' ? 'rgba(220, 38, 38, 0.15)' : '#1a1d24',
+                  border: `1px solid ${selectedAlert.status === 'ACTIVE' ? 'var(--alert-red-bright)' : '#2a2e37'}`,
+                  borderRadius: '20px',
+                  padding: '22px',
+                  marginBottom: '24px',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '14px'
+                }}>
+                  <div>
+                    <span className="badge-pill badge-red" style={{ marginBottom: '12px' }}>
+                      {selectedAlert.severity} PRIORITY TRIAGE EVENT
+                    </span>
+                    <h2 style={{ fontSize: '1.8rem', color: '#fff', marginBottom: '6px' }}>
+                      {selectedAlert.patient_name}
+                    </h2>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--blush-peach)', fontSize: '0.95rem' }}>
+                      <MapPin size={16} />
+                      <strong>Location:</strong> {selectedAlert.kiosk_location}
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--slate-light)' }}>Trigger Time</div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 600 }}>{new Date(selectedAlert.created_at).toLocaleTimeString()}</div>
                   </div>
                 </div>
-
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--slate-light)' }}>Trigger Time</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 600 }}>{new Date(selectedAlert.created_at).toLocaleTimeString()}</div>
-                </div>
-              </div>
 
               {/* Symptom Breakdown */}
               <div style={{ backgroundColor: '#17191c', borderRadius: '20px', border: '1px solid #2a2e37', padding: '28px', marginBottom: '28px' }}>
@@ -342,6 +376,7 @@ export default function TriageAlertSurface({ onExitTriage }) {
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* In-App Confirmation Modal for Triage Alert Removal */}

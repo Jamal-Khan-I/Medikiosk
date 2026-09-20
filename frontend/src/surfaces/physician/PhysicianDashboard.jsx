@@ -72,6 +72,18 @@ export default function PhysicianDashboard({ onExitDashboard }) {
   const [patientToDelete, setPatientToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Responsive View State for Tablet & Mobile (Stacked cards vs details)
+  const [isMobileScreen, setIsMobileScreen] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 1024);
+  const [mobileView, setMobileView] = useState('queue'); // 'queue' | 'details'
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileScreen(window.innerWidth <= 1024);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Handle Login
   const handleLogin = async (e) => {
     if (e) e.preventDefault();
@@ -471,7 +483,7 @@ export default function PhysicianDashboard({ onExitDashboard }) {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--fog-white)' }}>
       {/* Top Bar */}
       <header style={{
-        padding: '14px 28px',
+        padding: '12px 20px',
         backgroundColor: 'var(--paper-white)',
         borderBottom: '1px solid var(--border-light)',
         display: 'flex',
@@ -479,15 +491,17 @@ export default function PhysicianDashboard({ onExitDashboard }) {
         justifyContent: 'space-between',
         position: 'sticky',
         top: 0,
-        zIndex: 30
+        zIndex: 30,
+        flexWrap: 'wrap',
+        gap: '10px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--ink-black)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--ink-black)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Stethoscope size={20} />
           </div>
           <div>
-            <div style={{ fontWeight: 600, fontSize: '1.05rem', color: 'var(--ink-black)' }}>MediKiosk Physician Workstation</div>
-            <div style={{ fontSize: '0.76rem', color: 'var(--slate-gray)' }}>
+            <div style={{ fontWeight: 600, fontSize: '1.02rem', color: 'var(--ink-black)' }}>MediKiosk Physician Workstation</div>
+            <div style={{ fontSize: '0.74rem', color: 'var(--slate-gray)' }}>
               {physicianUser.name}
               {physicianUser.specialty ? ` • ${physicianUser.specialty}` : ''}
               {physicianUser.nmcNumber ? ` • NMC Reg: ${physicianUser.nmcNumber}` : ''}
@@ -495,13 +509,13 @@ export default function PhysicianDashboard({ onExitDashboard }) {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           <span className="badge-pill badge-peach">{physicianUser.specialty || physicianUser.department || 'OPD Clinical Unit'}</span>
           
           <button
             onClick={handleSignOut}
             className="btn-pill btn-pill-outline btn-pill-sm"
-            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', minHeight: '38px' }}
             title="Sign out of doctor session"
           >
             <LogOut size={14} />
@@ -509,7 +523,7 @@ export default function PhysicianDashboard({ onExitDashboard }) {
           </button>
 
           {onExitDashboard && (
-            <button onClick={onExitDashboard} className="btn-pill btn-pill-secondary btn-pill-sm">
+            <button onClick={onExitDashboard} className="btn-pill btn-pill-secondary btn-pill-sm" style={{ minHeight: '38px' }}>
               Exit Workstation
             </button>
           )}
@@ -517,194 +531,211 @@ export default function PhysicianDashboard({ onExitDashboard }) {
       </header>
 
       {/* Main Layout */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      <div className="split-workstation-layout">
         
-        {/* Left: Patient Queue */}
-        <div style={{
-          width: '360px',
-          backgroundColor: 'var(--paper-white)',
-          borderRight: '1px solid var(--border-light)',
-          display: 'flex',
-          flexDirection: 'column',
-          height: 'calc(100vh - 65px)'
-        }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>Active Outpatient Queue</div>
-              <div style={{ fontSize: '0.76rem', color: 'var(--slate-gray)' }}>{queue.length} Patients Ready</div>
-            </div>
-            <span className="badge-pill badge-gray">Live WebSocket</span>
-          </div>
-
-          <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
-            {queue.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--slate-gray)' }}>
-                <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--fog-white)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px auto', border: '1px solid var(--border-light)' }}>
-                  <User size={22} color="var(--slate-gray)" />
-                </div>
-                <div style={{ fontWeight: 600, fontSize: '0.94rem', color: 'var(--ink-black)', marginBottom: '4px' }}>
-                  No Patients in Queue
-                </div>
-                <p style={{ fontSize: '0.82rem', lineHeight: 1.5, margin: 0 }}>
-                  Awaiting patient check-ins from OPD Kiosks. Only live patient registrations will appear here.
-                </p>
+        {/* Left: Patient Queue (Adapts to stacked cards on tablet & mobile) */}
+        {(!isMobileScreen || mobileView === 'queue') && (
+          <div className="split-sidebar-panel">
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>Active Outpatient Queue</div>
+                <div style={{ fontSize: '0.76rem', color: 'var(--slate-gray)' }}>{queue.length} Patients Ready</div>
               </div>
-            ) : (
-              queue.map((enc) => {
-                const isSelected = enc.id === selectedEncounterId;
-                const pAge = getAccurateAge(enc.patient);
-                return (
-                  <div
-                    key={enc.id}
-                    onClick={() => setSelectedEncounterId(enc.id)}
-                    style={{
-                      padding: '16px',
-                      borderRadius: '16px',
-                      marginBottom: '10px',
-                      cursor: 'pointer',
-                      backgroundColor: isSelected ? 'var(--peach-subtle)' : '#fff',
-                      border: `1px solid ${isSelected ? 'var(--blush-peach)' : 'var(--border-light)'}`,
-                      boxShadow: enc.is_red_flagged ? 'var(--shadow-triage)' : 'none',
-                      transition: 'all 0.15s ease',
-                      position: 'relative'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-                      <div style={{ fontWeight: 600, fontSize: '0.96rem', color: 'var(--ink-black)' }}>
-                        {enc.patient?.full_name || 'Patient'}
-                      </div>
-                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                        <span className="badge-pill badge-peach" style={{ fontSize: '0.72rem' }}>
-                          {enc.token_number || 'TK-101'}
-                        </span>
-                        {enc.is_red_flagged && (
-                          <span className="badge-pill badge-red" style={{ fontSize: '0.68rem' }}>
-                            <AlertTriangle size={11} />
-                            <span>RED FLAG</span>
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setPatientToDelete(enc);
-                          }}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            padding: '3px 4px',
-                            cursor: 'pointer',
-                            color: 'var(--slate-gray)',
-                            borderRadius: '6px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            transition: 'color 0.15s ease'
-                          }}
-                          title="Delete patient encounter from queue"
-                          onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
-                          onMouseLeave={(e) => e.currentTarget.style.color = 'var(--slate-gray)'}
-                          aria-label="Delete patient"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
+              <span className="badge-pill badge-gray">Live WebSocket</span>
+            </div>
 
-                    <div style={{ fontSize: '0.8rem', color: 'var(--slate-gray)', marginBottom: '8px' }}>
-                      {enc.patient?.gender} • {pAge} yrs • Phone: {enc.patient?.phone_number || 'N/A'}
-                    </div>
-
-                    <div style={{ fontSize: '0.84rem', color: 'var(--ink-soft)', lineHeight: 1.4, marginBottom: '8px' }}>
-                      {enc.summary?.chief_complaint || 'Intake completed'}
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.74rem', color: 'var(--slate-gray)' }}>
-                      <span>{enc.kiosk?.kiosk_code || 'KIOSK 01'}</span>
-                      <span className="badge-pill" style={{
-                        backgroundColor: enc.status === 'REVIEWED_CONFIRMED' ? 'var(--success-green-bg)' : 'var(--mist-gray)',
-                        color: enc.status === 'REVIEWED_CONFIRMED' ? 'var(--success-green-text)' : 'var(--ink-soft)'
-                      }}>
-                        {enc.status}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })
+            {isMobileScreen && queue.length > 0 && (
+              <div style={{ padding: '8px 14px', backgroundColor: 'var(--peach-subtle)', color: 'var(--sienna-brown)', fontSize: '0.78rem', fontWeight: 500, borderBottom: '1px solid var(--blush-peach)' }}>
+                Tap any patient card below to review clinical summary & sign off EHR.
+              </div>
             )}
+
+            <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
+              {queue.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--slate-gray)' }}>
+                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--fog-white)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px auto', border: '1px solid var(--border-light)' }}>
+                    <User size={22} color="var(--slate-gray)" />
+                  </div>
+                  <div style={{ fontWeight: 600, fontSize: '0.94rem', color: 'var(--ink-black)', marginBottom: '4px' }}>
+                    No Patients in Queue
+                  </div>
+                  <p style={{ fontSize: '0.82rem', lineHeight: 1.5, margin: 0 }}>
+                    Awaiting patient check-ins from OPD Kiosks. Only live patient registrations will appear here.
+                  </p>
+                </div>
+              ) : (
+                queue.map((enc) => {
+                  const isSelected = enc.id === selectedEncounterId;
+                  const pAge = getAccurateAge(enc.patient);
+                  return (
+                    <div
+                      key={enc.id}
+                      onClick={() => {
+                        setSelectedEncounterId(enc.id);
+                        if (isMobileScreen) setMobileView('details');
+                      }}
+                      style={{
+                        padding: '16px',
+                        borderRadius: '16px',
+                        marginBottom: '10px',
+                        cursor: 'pointer',
+                        backgroundColor: isSelected ? 'var(--peach-subtle)' : '#fff',
+                        border: `1px solid ${isSelected ? 'var(--blush-peach)' : 'var(--border-light)'}`,
+                        boxShadow: enc.is_red_flagged ? 'var(--shadow-triage)' : 'none',
+                        transition: 'all 0.15s ease',
+                        position: 'relative'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                        <div style={{ fontWeight: 600, fontSize: '0.96rem', color: 'var(--ink-black)' }}>
+                          {enc.patient?.full_name || 'Patient'}
+                        </div>
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                          <span className="badge-pill badge-peach" style={{ fontSize: '0.72rem' }}>
+                            {enc.token_number || 'TK-101'}
+                          </span>
+                          {enc.is_red_flagged && (
+                            <span className="badge-pill badge-red" style={{ fontSize: '0.68rem' }}>
+                              <AlertTriangle size={11} />
+                              <span>RED FLAG</span>
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setPatientToDelete(enc);
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              padding: '3px 4px',
+                              cursor: 'pointer',
+                              color: 'var(--slate-gray)',
+                              borderRadius: '6px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'color 0.15s ease'
+                            }}
+                            title="Delete patient encounter from queue"
+                            onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
+                            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--slate-gray)'}
+                            aria-label="Delete patient"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div style={{ fontSize: '0.8rem', color: 'var(--slate-gray)', marginBottom: '8px' }}>
+                        {enc.patient?.gender} • {pAge} yrs • Phone: {enc.patient?.phone_number || 'N/A'}
+                      </div>
+
+                      <div style={{ fontSize: '0.84rem', color: 'var(--ink-soft)', lineHeight: 1.4, marginBottom: '8px' }}>
+                        {enc.summary?.chief_complaint || 'Intake completed'}
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.74rem', color: 'var(--slate-gray)' }}>
+                        <span>{enc.kiosk?.kiosk_code || 'KIOSK 01'}</span>
+                        <span className="badge-pill" style={{
+                          backgroundColor: enc.status === 'REVIEWED_CONFIRMED' ? 'var(--success-green-bg)' : 'var(--mist-gray)',
+                          color: enc.status === 'REVIEWED_CONFIRMED' ? 'var(--success-green-text)' : 'var(--ink-soft)'
+                        }}>
+                          {enc.status}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Right: Detailed Structured Summary */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: 'calc(100vh - 65px)', overflowY: 'auto', padding: '24px 32px' }}>
-          
-          {encounterDetails ? (
-            <div style={{ maxWidth: '1080px', margin: '0 auto', width: '100%' }}>
-              
-              {/* Red-Flag Urgent Banner */}
-              {encounterDetails.encounter.is_red_flagged && (
-                <div style={{
-                  backgroundColor: 'var(--alert-red-bg)',
-                  border: '1px solid var(--alert-red-border)',
-                  borderRadius: '16px',
-                  padding: '16px 20px',
-                  marginBottom: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px'
-                }}>
-                  <AlertTriangle size={24} color="var(--alert-red-bright)" className="animate-pulse-red" />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ color: 'var(--alert-red-text)', fontWeight: 600, fontSize: '0.96rem' }}>
-                      CRITICAL CLINICAL TRIAGE RED FLAG
+        {(!isMobileScreen || mobileView === 'details') && (
+          <div className="split-main-panel">
+            {isMobileScreen && (
+              <button
+                type="button"
+                onClick={() => setMobileView('queue')}
+                className="btn-pill btn-pill-outline btn-pill-sm"
+                style={{ alignSelf: 'flex-start', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px', minHeight: '44px' }}
+              >
+                <ArrowLeft size={16} />
+                <span>Back to Patient Queue ({queue.length})</span>
+              </button>
+            )}
+            
+            {encounterDetails ? (
+              <div style={{ maxWidth: '1080px', margin: '0 auto', width: '100%' }}>
+                
+                {/* Red-Flag Urgent Banner */}
+                {encounterDetails.encounter.is_red_flagged && (
+                  <div style={{
+                    backgroundColor: 'var(--alert-red-bg)',
+                    border: '1px solid var(--alert-red-border)',
+                    borderRadius: '16px',
+                    padding: '16px 20px',
+                    marginBottom: '20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px'
+                  }}>
+                    <AlertTriangle size={24} color="var(--alert-red-bright)" className="animate-pulse-red" />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ color: 'var(--alert-red-text)', fontWeight: 600, fontSize: '0.96rem' }}>
+                        CRITICAL CLINICAL TRIAGE RED FLAG
+                      </div>
+                      <div style={{ color: 'var(--alert-red-text)', fontSize: '0.88rem', marginTop: '2px' }}>
+                        {encounterDetails.encounter.red_flag_reason}
+                      </div>
                     </div>
-                    <div style={{ color: 'var(--alert-red-text)', fontSize: '0.88rem', marginTop: '2px' }}>
-                      {encounterDetails.encounter.red_flag_reason}
+                    <span className="badge-pill badge-red">Emergency Priority</span>
+                  </div>
+                )}
+
+                {/* Patient Demographics Banner (Section 1) */}
+                <div className="card-steep" style={{ padding: '20px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                      <h2 style={{ fontSize: 'clamp(1.3rem, 3.5vw, 1.6rem)', color: 'var(--ink-black)' }}>{currentPatient?.full_name}</h2>
+                      <span className="badge-pill badge-peach">Token: {encounterDetails.encounter.token_number || 'TK-101'}</span>
+                      <span className="badge-pill badge-gray">{currentPatient?.gender}</span>
+                      <span className="badge-pill badge-peach">Age: {currentAge} yrs</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '14px', marginTop: '8px', fontSize: '0.85rem', color: 'var(--slate-gray)', flexWrap: 'wrap' }}>
+                      <span><strong>DOB:</strong> {currentPatient?.dob || 'Estimated from age'}</span>
+                      <span><strong>Mobile:</strong> {currentPatient?.phone_number}</span>
+                      <span><strong>ABHA:</strong> {currentPatient?.abha_number || currentPatient?.abha_address || 'Walk-in Direct'}</span>
+                      <span><strong>Department:</strong> {encounterDetails.encounter.department}</span>
                     </div>
                   </div>
-                  <span className="badge-pill badge-red">Emergency Priority</span>
-                </div>
-              )}
 
-              {/* Patient Demographics Banner (Section 1) */}
-              <div className="card-steep" style={{ padding: '24px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <h2 style={{ fontSize: '1.6rem', color: 'var(--ink-black)' }}>{currentPatient?.full_name}</h2>
-                    <span className="badge-pill badge-peach">Token: {encounterDetails.encounter.token_number || 'TK-101'}</span>
-                    <span className="badge-pill badge-gray">{currentPatient?.gender}</span>
-                    <span className="badge-pill badge-peach">Age: {currentAge} yrs</span>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    {encounterDetails.encounter.status === 'REVIEWED_CONFIRMED' ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: 'var(--success-green-bg)', color: 'var(--success-green-text)', borderRadius: 'var(--radius-pill)', fontWeight: 600, fontSize: '0.9rem' }}>
+                        <CheckCircle2 size={18} />
+                        <span>EHR Confirmed & Signed</span>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={handleConfirmEncounter}
+                        disabled={isSigningOff}
+                        className="btn-pill btn-pill-primary"
+                        style={{ minHeight: '44px' }}
+                      >
+                        <CheckCircle2 size={18} />
+                        <span>{isSigningOff ? 'Generating FHIR Bundle...' : 'Confirm & Sign Off History'}</span>
+                      </button>
+                    )}
                   </div>
-                  <div style={{ display: 'flex', gap: '20px', marginTop: '8px', fontSize: '0.85rem', color: 'var(--slate-gray)' }}>
-                    <span><strong>DOB:</strong> {currentPatient?.dob || 'Estimated from age'}</span>
-                    <span><strong>Mobile:</strong> {currentPatient?.phone_number}</span>
-                    <span><strong>ABHA:</strong> {currentPatient?.abha_number || currentPatient?.abha_address || 'Walk-in Direct'}</span>
-                    <span><strong>Department:</strong> {encounterDetails.encounter.department}</span>
-                  </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  {encounterDetails.encounter.status === 'REVIEWED_CONFIRMED' ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: 'var(--success-green-bg)', color: 'var(--success-green-text)', borderRadius: 'var(--radius-pill)', fontWeight: 600, fontSize: '0.9rem' }}>
-                      <CheckCircle2 size={18} />
-                      <span>EHR Confirmed & Signed</span>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={handleConfirmEncounter}
-                      disabled={isSigningOff}
-                      className="btn-pill btn-pill-primary"
-                    >
-                      <CheckCircle2 size={18} />
-                      <span>{isSigningOff ? 'Generating FHIR Bundle...' : 'Confirm & Sign Off History'}</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Navigation Tabs */}
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+                {/* Navigation Tabs */}
+                <div className="tabs-scrollable">
                 <button
                   onClick={() => setActiveTab('summary')}
                   className={`btn-pill ${activeTab === 'summary' ? 'btn-pill-primary' : 'btn-pill-secondary'}`}
@@ -1153,6 +1184,7 @@ export default function PhysicianDashboard({ onExitDashboard }) {
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* Inline Field Edit Modal */}
