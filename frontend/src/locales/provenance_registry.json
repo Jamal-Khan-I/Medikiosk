@@ -1,0 +1,121 @@
+{
+  "updatedAt": "2026-09-20T08:36:30.689Z",
+  "totalLanguages": 23,
+  "provenance": {
+    "en": {
+      "name": "English",
+      "script": "Latin",
+      "source": "Manual / Reference"
+    },
+    "hi": {
+      "name": "Hindi",
+      "script": "Devanagari",
+      "source": "Manual / Clinical Team"
+    },
+    "ta": {
+      "name": "Tamil",
+      "script": "Tamil",
+      "source": "Manual / Clinical Team"
+    },
+    "te": {
+      "name": "Telugu",
+      "script": "Telugu",
+      "source": "Manual / Clinical Team"
+    },
+    "bn": {
+      "name": "Bengali",
+      "script": "Bengali",
+      "source": "Manual / Clinical Team"
+    },
+    "mr": {
+      "name": "Marathi",
+      "script": "Devanagari",
+      "source": "Manual / Clinical Team"
+    },
+    "gu": {
+      "name": "Gujarati",
+      "script": "Gujarati",
+      "source": "Manual / Clinical Team"
+    },
+    "kn": {
+      "name": "Kannada",
+      "script": "Kannada",
+      "source": "Manual / Clinical Team"
+    },
+    "ml": {
+      "name": "Malayalam",
+      "script": "Malayalam",
+      "source": "Manual / Clinical Team"
+    },
+    "pa": {
+      "name": "Punjabi",
+      "script": "Gurmukhi",
+      "source": "Manual / Clinical Team"
+    },
+    "as": {
+      "name": "Assamese",
+      "script": "Bengali-Assamese",
+      "source": "Bhashini NMT (IndicTrans-v2)"
+    },
+    "brx": {
+      "name": "Bodo",
+      "script": "Devanagari",
+      "source": "Bhashini NMT (IndicTrans-v2)"
+    },
+    "doi": {
+      "name": "Dogri",
+      "script": "Devanagari",
+      "source": "Bhashini NMT (IndicTrans-v2)"
+    },
+    "gom": {
+      "name": "Konkani",
+      "script": "Devanagari",
+      "source": "Bhashini NMT (IndicTrans-v2)"
+    },
+    "ks": {
+      "name": "Kashmiri",
+      "script": "Perso-Arabic",
+      "source": "Bhashini NMT (IndicTrans-v2)"
+    },
+    "mai": {
+      "name": "Maithili",
+      "script": "Devanagari",
+      "source": "Bhashini NMT (IndicTrans-v2)"
+    },
+    "mni": {
+      "name": "Manipuri",
+      "script": "Meitei / Bengali",
+      "source": "Bhashini NMT (IndicTrans-v2)"
+    },
+    "ne": {
+      "name": "Nepali",
+      "script": "Devanagari",
+      "source": "Bhashini NMT (IndicTrans-v2)"
+    },
+    "or": {
+      "name": "Odia",
+      "script": "Odia",
+      "source": "Bhashini NMT (IndicTrans-v2)"
+    },
+    "sa": {
+      "name": "Sanskrit",
+      "script": "Devanagari",
+      "source": "Bhashini NMT (IndicTrans-v2)"
+    },
+    "sat": {
+      "name": "Santali",
+      "script": "Ol Chiki / Latin",
+      "source": "Bhashini NMT (IndicTrans-v2)"
+    },
+    "sd": {
+      "name": "Sindhi",
+      "script": "Perso-Arabic / Devanagari",
+      "source": "Bhashini NMT (IndicTrans-v2)"
+    },
+    "ur": {
+      "name": "Urdu",
+      "script": "Perso-Arabic",
+      "source": "Bhashini NMT (IndicTrans-v2)"
+    }
+  }
+}

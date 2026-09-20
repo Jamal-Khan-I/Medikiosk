@@ -1,5 +1,21 @@
 // Adaptive SOCRATES and AYUSH Intake Service
 // Multilingual Clinical Question Prompts & Structured EHR Summary Generator
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+let ayush22Translations = {};
+try {
+  const p = path.join(__dirname, 'ayush_questions_22.json');
+  if (fs.existsSync(p)) {
+    ayush22Translations = JSON.parse(fs.readFileSync(p, 'utf8'));
+  }
+} catch (e) {
+  console.warn('[IntakeService] Notice: Could not load ayush_questions_22.json:', e.message);
+}
 
 export const ADAPTIVE_COMPLAINT_TREES = {
   'CHEST_PAIN': {
@@ -638,12 +654,24 @@ export function getAdaptiveQuestions(complaintText = '', mode = 'STANDARD_SOCRAT
   };
 
   const questions = [ccQuestion, ...socratesTree.questions];
+  const baseQuestions = isAyush ? [...questions, ...AYUSH_DASHAVIDHA_QUESTIONS] : questions;
 
-  if (isAyush) {
-    return [...questions, ...AYUSH_DASHAVIDHA_QUESTIONS];
-  }
+  // Enrich with 22-language prompts
+  const enrichedQuestions = baseQuestions.map(q => {
+    const extraPrompts = ayush22Translations[q.stepId];
+    if (extraPrompts) {
+      return {
+        ...q,
+        prompt: {
+          ...q.prompt,
+          ...extraPrompts
+        }
+      };
+    }
+    return q;
+  });
 
-  return questions;
+  return enrichedQuestions;
 }
 
 export function generateStructuredSummary(patient, answers, extractedEntities = [], mode = 'STANDARD_SOCRATES') {

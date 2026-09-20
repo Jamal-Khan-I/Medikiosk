@@ -29,22 +29,36 @@ import {
   Ticket,
   Sparkles,
   Loader2,
-  Trash2
+  Trash2,
+  Search
 } from 'lucide-react';
 import { api, API_BASE } from '../../services/api';
 import { getLocalizedOption } from '../../services/optionTranslations';
 
 const SUPPORTED_LANGUAGES = [
-  { code: 'en', name: 'English', native: 'English', greeting: 'Hello, welcome to outpatient intake.' },
-  { code: 'hi', name: 'Hindi', native: 'हिंदी', greeting: 'नमस्ते, आपका स्वागत है।' },
-  { code: 'ta', name: 'Tamil', native: 'தமிழ்', greeting: 'வணக்கம், வருக.' },
-  { code: 'te', name: 'Telugu', native: 'తెలుగు', greeting: 'నమస్కారం, స్వాగతం.' },
-  { code: 'bn', name: 'Bengali', native: 'বাংলা', greeting: 'নমস্কার, স্বাগতম।' },
-  { code: 'mr', name: 'Marathi', native: 'मराठी', greeting: 'नमस्कार, स्वागत आहे.' },
-  { code: 'gu', name: 'Gujarati', native: 'ગુજરાતી', greeting: 'નમસ્તે, સ્વાગત છે.' },
-  { code: 'kn', name: 'Kannada', native: 'ಕನ್ನಡ', greeting: 'ನಮಸ್ಕಾರ, ಸುಸ್ವಾಗತ.' },
-  { code: 'ml', name: 'Malayalam', native: 'മലയാളം', greeting: 'നമസ്കാരം, സ്വാഗതം.' },
-  { code: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', greeting: 'ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ, ਜੀ ਆਇਆਂ ਨੂੰ।' }
+  { code: 'hi', name: 'Hindi', native: 'हिन्दी', greeting: 'नमस्ते, ओपीडी में स्वागत है।', group: 'COMMON' },
+  { code: 'en', name: 'English', native: 'English', greeting: 'Hello, welcome to outpatient intake.', group: 'COMMON' },
+  { code: 'ta', name: 'Tamil', native: 'தமிழ்', greeting: 'வணக்கம், புறநோயாளி பிரிவிற்கு நல்வரவு.', group: 'COMMON' },
+  { code: 'te', name: 'Telugu', native: 'తెలుగు', greeting: 'నమస్కారం, ఔట్ పేషెంట్ విభాగానికి స్వాగతం.', group: 'COMMON' },
+  { code: 'bn', name: 'Bengali', native: 'বাংলা', greeting: 'নমস্কার, বহির্বিভাগে আপনাকে স্বাগতম।', group: 'COMMON' },
+  { code: 'mr', name: 'Marathi', native: 'मराठी', greeting: 'नमस्कार, बाह्यरुग्ण विभागात आपले स्वागत आहे.', group: 'COMMON' },
+  { code: 'gu', name: 'Gujarati', native: 'ગુજરાતી', greeting: 'નમસ્તે, ઓપીડી સેવાઓમાં આપનું સ્વાગત છે.', group: 'COMMON' },
+  { code: 'kn', name: 'Kannada', native: 'ಕನ್ನಡ', greeting: 'ನಮಸ್ಕಾರ, ಹೊರರೋಗಿ ವಿಭಾಗಕ್ಕೆ ಸುಸ್ವಾಗತ.', group: 'COMMON' },
+  { code: 'ml', name: 'Malayalam', native: 'മലയാളം', greeting: 'നമസ്കാരം, ഒ.പി. വിഭാഗത്തിലേക്ക് സ്വാഗതം.', group: 'COMMON' },
+  { code: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', greeting: 'ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ, ਓ.ਪੀ.ਡੀ. ਵਿੱਚ ਜੀ ਆਇਆਂ ਨੂੰ।', group: 'COMMON' },
+  { code: 'as', name: 'Assamese', native: 'অসমীয়া', greeting: 'নমস্কাৰ, বহিঃবিভাগলৈ আপোনাক স্বাগতম।', group: 'EAST' },
+  { code: 'brx', name: 'Bodo', native: 'बड़ो', greeting: 'खुलुमबाय, आस्पथायलाय नोंथांखौ बरायबाय।', group: 'EAST' },
+  { code: 'doi', name: 'Dogri', native: 'डोगरी', greeting: 'नमस्ते, अस्पतालै च थुआड़ा स्वागत ऐ।', group: 'NORTH' },
+  { code: 'gom', name: 'Konkani', native: 'कोंकणी', greeting: 'नमस्कार, बाह्यरुग्ण विभागांत तुमकां येवकार।', group: 'WEST' },
+  { code: 'ks', name: 'Kashmiri', native: 'کٲشُر', greeting: 'سلام، ہسپتال مَنٛز چھُ تُہند اِستقبال۔', group: 'NORTH' },
+  { code: 'mai', name: 'Maithili', native: 'मैथिली', greeting: 'प्रणाम, अस्पताल मे अपन स्वागत अछि।', group: 'EAST' },
+  { code: 'mni', name: 'Manipuri', native: 'মৈতৈলোন্', greeting: 'খুরুমজরি, হোস্পিতালদা তরাম্না ওকচরি।', group: 'EAST' },
+  { code: 'ne', name: 'Nepali', native: 'नेपाली', greeting: 'नमस्ते, अस्पतालमा यहाँलाई स्वागत छ।', group: 'NORTH' },
+  { code: 'or', name: 'Odia', native: 'ଓଡ଼ିଆ', greeting: 'ନମସ୍କାର, ବହିର୍ବିଭାଗକୁ ଆପଣଙ୍କୁ ସ୍ୱାଗତ।', group: 'EAST' },
+  { code: 'sa', name: 'Sanskrit', native: 'संस्कृतम्', greeting: 'नमस्ते, बहिर्विभागे भवतः स्वागतम् अस्ति।', group: 'NORTH' },
+  { code: 'sat', name: 'Santali', native: 'ᱥᱟᱱᱛᱟᱲᱤ', greeting: 'ᱡᱚᱦᱟᱨ, ᱦᱟᱥᱯᱟᱛᱟᱞ ᱨᱮ ᱥᱟᱹᱜᱩᱱ ᱫᱟᱨᱟᱢ।', group: 'EAST' },
+  { code: 'sd', name: 'Sindhi', native: 'سنڌي', greeting: 'سلام، اسپتال ۾ ڀلی ڪري آيا.', group: 'WEST' },
+  { code: 'ur', name: 'Urdu', native: 'اُردُو', greeting: 'آداب، او پی ڈی میں آپ کا خیر مقدم ہے۔', group: 'NORTH' }
 ];
 
 /**
@@ -83,6 +97,8 @@ export default function PatientKiosk({ onExitKiosk }) {
   // Navigation Steps: 'LANG' | 'IDENTITY_QUESTION' | 'ABHA_ENTRY' | 'ABHA_CONFIRM' | 'NEW_PATIENT_FORM' | 'CONSENT' | 'MODE_SELECT' | 'INTAKE' | 'DOCS' | 'REVIEW' | 'CONFIRM'
   const [step, setStep] = useState('LANG');
   const [selectedLang, setSelectedLang] = useState('en');
+  const [langSearch, setLangSearch] = useState('');
+  const [langGroup, setLangGroup] = useState('ALL');
   const [isPlayingAudio, setIsPlayingAudio] = useState(true);
 
   // Queue Token Number
@@ -1144,53 +1160,205 @@ export default function PatientKiosk({ onExitKiosk }) {
       <main className="kiosk-main-content">
         
         {/* STEP 1: LANGUAGE SELECTION */}
-        {step === 'LANG' && (
-          <div>
-            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-              <span className="badge-pill badge-peach" style={{ marginBottom: '12px' }}>
-                Step 1 of 6
-              </span>
-              <h1 style={{ marginBottom: '8px' }}>Select Your Preferred Language</h1>
-              <p style={{ color: 'var(--slate-gray)', fontSize: '1.05rem' }}>
-                Touch your language below to start the voice-guided clinical check-in
-              </p>
-            </div>
+        {step === 'LANG' && (() => {
+          const filteredLanguages = SUPPORTED_LANGUAGES.filter(lang => {
+            const q = langSearch.trim().toLowerCase();
+            const matchesSearch = !q || 
+              lang.name.toLowerCase().includes(q) || 
+              lang.native.toLowerCase().includes(q) ||
+              lang.code.toLowerCase().includes(q);
+            const matchesGroup = langGroup === 'ALL' || 
+              (langGroup === 'COMMON' && lang.group === 'COMMON') ||
+              (langGroup === 'NORTH' && (lang.group === 'NORTH' || lang.code === 'hi' || lang.code === 'pa')) ||
+              (langGroup === 'SOUTH' && (lang.code === 'ta' || lang.code === 'te' || lang.code === 'kn' || lang.code === 'ml')) ||
+              (langGroup === 'EAST' && (lang.group === 'EAST' || lang.code === 'bn')) ||
+              (langGroup === 'WEST' && (lang.group === 'WEST' || lang.code === 'mr' || lang.code === 'gu'));
+            return matchesSearch && matchesGroup;
+          });
 
-            <div className="kiosk-lang-grid">
-              {SUPPORTED_LANGUAGES.map((lang) => (
-                <button
-                  key={lang.code}
-                  onClick={() => {
-                    setSelectedLang(lang.code);
-                    i18n.changeLanguage(lang.code);
-                    setStep('IDENTITY_QUESTION');
-                  }}
-                  className="card-steep kiosk-touch-target"
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '20px 14px',
-                    borderColor: selectedLang === lang.code ? 'var(--ink-black)' : 'var(--border-light)',
-                    backgroundColor: selectedLang === lang.code ? 'var(--peach-subtle)' : '#fff',
-                    textAlign: 'center',
-                    transition: 'all 0.15s ease',
-                    minHeight: '80px'
+          return (
+            <div>
+              <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '12px' }}>
+                  <span className="badge-pill badge-peach">
+                    Step 1 of 6
+                  </span>
+                  <span className="badge-pill badge-subtle" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <Languages size={12} /> Bhashini 22 Official Languages
+                  </span>
+                </div>
+                <h1 style={{ marginBottom: '8px', fontSize: 'clamp(1.8rem, 4vw, 2.4rem)' }}>
+                  Select Your Preferred Language
+                </h1>
+                <p style={{ color: 'var(--slate-gray)', fontSize: '1.05rem', margin: '0 auto', maxWidth: '640px' }}>
+                  Touch your native language below to begin voice-guided clinical check-in in your preferred script.
+                </p>
+              </div>
+
+              {/* Search Bar & Filter Controls */}
+              <div style={{ maxWidth: '680px', margin: '0 auto 24px' }}>
+                <div style={{ position: 'relative', marginBottom: '14px' }}>
+                  <Search 
+                    size={20} 
+                    style={{ 
+                      position: 'absolute', 
+                      left: '16px', 
+                      top: '50%', 
+                      transform: 'translateY(-50%)', 
+                      color: 'var(--slate-light)',
+                      pointerEvents: 'none'
+                    }} 
+                  />
+                  <input
+                    type="text"
+                    value={langSearch}
+                    onChange={(e) => setLangSearch(e.target.value)}
+                    placeholder="Search language / भाषा खोजें / மொழியைத் தேடு / ভাষাটো সন্ধান কৰক..."
+                    style={{
+                      width: '100%',
+                      padding: '14px 44px 14px 48px',
+                      fontSize: '1rem',
+                      borderRadius: 'var(--radius-pill)',
+                      border: '1.5px solid var(--border-light)',
+                      backgroundColor: '#fff',
+                      color: 'var(--ink-black)',
+                      outline: 'none',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                      transition: 'border-color 0.15s ease'
+                    }}
+                  />
+                  {langSearch && (
+                    <button
+                      onClick={() => setLangSearch('')}
+                      style={{
+                        position: 'absolute',
+                        right: '16px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: 'var(--slate-gray)',
+                        padding: '4px',
+                        fontSize: '1.1rem'
+                      }}
+                      title="Clear search"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                {/* Regional Filter Pills */}
+                <div 
+                  className="tabs-scrollable" 
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px', 
+                    justifyContent: 'flex-start',
+                    paddingBottom: '4px' 
                   }}
                 >
-                  <span style={{ fontSize: '1.4rem', fontWeight: 600, color: 'var(--ink-black)', marginBottom: '4px' }}>
-                    {lang.native}
-                  </span>
-                  <span style={{ fontSize: '0.86rem', color: 'var(--slate-gray)' }}>{lang.name}</span>
-                  <span style={{ fontSize: '0.76rem', color: 'var(--sienna-brown)', marginTop: '4px' }}>
-                    {lang.greeting}
-                  </span>
-                </button>
-              ))}
+                  {[
+                    { id: 'ALL', label: 'All 22 Languages' },
+                    { id: 'COMMON', label: 'Commonly Used' },
+                    { id: 'NORTH', label: 'North & Central' },
+                    { id: 'SOUTH', label: 'South (Dravidian)' },
+                    { id: 'EAST', label: 'East & Northeast' },
+                    { id: 'WEST', label: 'West' }
+                  ].map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setLangGroup(cat.id)}
+                      className={`badge-pill ${langGroup === cat.id ? 'badge-forest' : 'badge-subtle'}`}
+                      style={{
+                        padding: '8px 16px',
+                        fontSize: '0.82rem',
+                        cursor: 'pointer',
+                        border: 'none',
+                        minHeight: '36px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        flexShrink: 0
+                      }}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Languages Grid */}
+              <div className="kiosk-lang-grid">
+                {filteredLanguages.map((lang) => {
+                  const isSelected = selectedLang === lang.code;
+                  return (
+                    <button
+                      key={lang.code}
+                      onClick={() => {
+                        setSelectedLang(lang.code);
+                        i18n.changeLanguage(lang.code);
+                        setStep('IDENTITY_QUESTION');
+                      }}
+                      className="card-steep kiosk-touch-target"
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '22px 16px',
+                        borderColor: isSelected ? 'var(--sienna-brown)' : 'var(--border-light)',
+                        backgroundColor: isSelected ? 'var(--peach-subtle)' : '#fff',
+                        textAlign: 'center',
+                        transition: 'all 0.15s ease',
+                        minHeight: '96px',
+                        position: 'relative',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <div style={{ position: 'absolute', top: '8px', right: '10px' }}>
+                        <span style={{ fontSize: '0.68rem', color: 'var(--slate-light)', fontWeight: 600, textTransform: 'uppercase' }}>
+                          {lang.code}
+                        </span>
+                      </div>
+                      <span 
+                        style={{ 
+                          fontSize: '1.45rem', 
+                          fontWeight: 700, 
+                          color: isSelected ? 'var(--sienna-brown)' : 'var(--ink-black)', 
+                          marginBottom: '4px',
+                          lineHeight: 1.2
+                        }}
+                      >
+                        {lang.native}
+                      </span>
+                      <span style={{ fontSize: '0.9rem', color: 'var(--slate-gray)', fontWeight: 500 }}>
+                        {lang.name}
+                      </span>
+                      <span style={{ fontSize: '0.74rem', color: 'var(--sienna-brown)', marginTop: '6px', opacity: 0.88 }}>
+                        {lang.greeting}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {filteredLanguages.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--slate-gray)' }}>
+                  <p style={{ fontSize: '1.1rem', marginBottom: '8px' }}>No languages matching "{langSearch}"</p>
+                  <button 
+                    onClick={() => { setLangSearch(''); setLangGroup('ALL'); }}
+                    className="btn btn-secondary"
+                    style={{ minHeight: '44px' }}
+                  >
+                    Clear Filter
+                  </button>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* STEP 2: SCREEN 1 — ONE QUESTION ONLY: HAVE YOU VISITED BEFORE OR HAVE ABHA? */}
         {step === 'IDENTITY_QUESTION' && (

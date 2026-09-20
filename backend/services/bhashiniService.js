@@ -28,7 +28,18 @@ function normalizeLang(lang) {
     'gujarati': 'gu', 'guj': 'gu',
     'english': 'en', 'eng': 'en',
     'odia': 'or', 'oriya': 'or',
-    'assamese': 'as', 'urdu': 'ur'
+    'assamese': 'as', 'asm': 'as',
+    'bodo': 'brx',
+    'dogri': 'doi',
+    'kashmiri': 'ks', 'kas': 'ks',
+    'konkani': 'gom', 'kok': 'gom',
+    'maithili': 'mai',
+    'manipuri': 'mni', 'meitei': 'mni',
+    'nepali': 'ne', 'nep': 'ne',
+    'sanskrit': 'sa', 'san': 'sa',
+    'santali': 'sat',
+    'sindhi': 'sd', 'snd': 'sd',
+    'urdu': 'ur', 'urd': 'ur'
   };
   return map[clean] || clean;
 }

@@ -1,0 +1,20 @@
+{
+  "kiosk_header_title": "MediKiosk OPD ٹرمینل-KIOSK 1",
+  "kiosk_header_subtitle": "گراؤنڈ فلور او پی ڈی ایٹریم-ایسٹ ونگ",
+  "token_label": "ٹوکن۔",
+  "voice_guide_active": "وائس گائیڈ ایکٹیو",
+  "audio_muted": "آڈیو آو خاموش کرنہٕ۔",
+  "exit_kiosk": "کیوسک سے باہر نکلیں",
+  "triage_alert_title": "کلینکل ٹرائی الرٹ:",
+  "triage_alert_desc": "شدید علامتی پیٹرنک پتہ آو لگاونہٕ (_ PH _ 0 _)۔ ہسپتالٕچ ریپڈ رسپانس نرسن دژ اطلاع۔",
+  "triage_dispatched": "ٹرائی ٹیم ڈسپیچڈ",
+  "step_counter": "مرحلہ _ پی ایچ _ 0 _ آف _ پی ایچ _ 1",
+  "back": "واپس۔",
+  "next": "پتہٕ۔",
+  "proceed": "برٛۄنٛہہ پکۍ۔",
+  "cancel": "رد کریو۔",
+  "close": "بند کر۔",
+  "yes": "جی ہاں۔",
+  "no": "نہ۔",
+  "select_language_title": "پنٕنۍ ترجیحی زبان ژارنہٕ۔"
+}

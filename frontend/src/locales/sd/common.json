@@ -1,0 +1,20 @@
+{
+  "kiosk_header_title": "MediKiosk OPD ٽرمینل-KIOSK 01",
+  "kiosk_header_subtitle": "گرائونڊ فلور او پی ڊی ایٽریم-ایسٽ ونگ",
+  "token_label": "ٽوڪن",
+  "voice_guide_active": "آواز ھدایت فعال",
+  "audio_muted": "آواز خاموش ڪیو ویو",
+  "exit_kiosk": "ڪائوسڪ کان ٻاہر وڃو",
+  "triage_alert_title": "ڪلینڪل ٽرایج الرٽ",
+  "triage_alert_desc": "شدید علامتی نمونن جو پتو لڳایو ویو (_ PH _ 0 _) اسپتال ریپڊ رسپانس نرس اطلاع ڏنو",
+  "triage_dispatched": "ٽرایج ٽیم موڪلیو ویو",
+  "step_counter": "قدم _ PH _ 0 _ _ PH _ 1 _",
+  "back": "واپس",
+  "next": "اگلا",
+  "proceed": "اڳتی وڌو",
+  "cancel": "رد ڪریو",
+  "close": "بند ڪریو",
+  "yes": "ہا ہا",
+  "no": "نہ نہ",
+  "select_language_title": "پنھنجی پسند جی ٻولی چونڊیو"
+}

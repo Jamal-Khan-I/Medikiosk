@@ -1,0 +1,222 @@
+[
+  {
+    "language": "Assamese",
+    "code": "as",
+    "native": "অসমীয়া",
+    "family": "Indo-Aryan",
+    "selectorShows": "Y",
+    "asrTested": "Not Deployed on Pipeline",
+    "ttsTested": "Supported (Model: indic-tts-coqui-indo)",
+    "uiSource": "Bhashini NMT (IndicTrans-v2)"
+  },
+  {
+    "language": "Bengali",
+    "code": "bn",
+    "native": "বাংলা",
+    "family": "Indo-Aryan",
+    "selectorShows": "Y",
+    "asrTested": "Supported (Pipeline Ready: conformer-multilingu)",
+    "ttsTested": "PASS (389ms, 278298 bytes)",
+    "uiSource": "Manual / Clinical Team"
+  },
+  {
+    "language": "Bodo",
+    "code": "brx",
+    "native": "बड़ो",
+    "family": "Tibeto-Burman",
+    "selectorShows": "Y",
+    "asrTested": "Not Deployed on Pipeline",
+    "ttsTested": "PASS (196ms, 170606 bytes)",
+    "uiSource": "Bhashini NMT (IndicTrans-v2)"
+  },
+  {
+    "language": "Dogri",
+    "code": "doi",
+    "native": "डोगरी",
+    "family": "Indo-Aryan",
+    "selectorShows": "Y",
+    "asrTested": "Not Deployed on Pipeline",
+    "ttsTested": "Not Deployed on Pipeline",
+    "uiSource": "Bhashini NMT (IndicTrans-v2)"
+  },
+  {
+    "language": "Gujarati",
+    "code": "gu",
+    "native": "ગુજરાતી",
+    "family": "Indo-Aryan",
+    "selectorShows": "Y",
+    "asrTested": "Supported (Model: conformer-multilingu)",
+    "ttsTested": "Supported (Model: indic-tts-coqui-indo)",
+    "uiSource": "Manual / Clinical Team"
+  },
+  {
+    "language": "Hindi",
+    "code": "hi",
+    "native": "हिन्दी",
+    "family": "Indo-Aryan",
+    "selectorShows": "Y",
+    "asrTested": "Supported (Pipeline Ready: conformer-hi-gpu--t4)",
+    "ttsTested": "PASS (297ms, 165486 bytes)",
+    "uiSource": "Manual / Clinical Team"
+  },
+  {
+    "language": "Kannada",
+    "code": "kn",
+    "native": "ಕನ್ನಡ",
+    "family": "Dravidian",
+    "selectorShows": "Y",
+    "asrTested": "Supported (Pipeline Ready: conformer-multilingu)",
+    "ttsTested": "PASS (352ms, 237166 bytes)",
+    "uiSource": "Manual / Clinical Team"
+  },
+  {
+    "language": "Kashmiri",
+    "code": "ks",
+    "native": "کٲشُر",
+    "family": "Dardic / Indo-Aryan",
+    "selectorShows": "Y",
+    "asrTested": "Not Deployed on Pipeline",
+    "ttsTested": "Not Deployed on Pipeline",
+    "uiSource": "Bhashini NMT (IndicTrans-v2)"
+  },
+  {
+    "language": "Konkani",
+    "code": "gom",
+    "native": "कोंकणी",
+    "family": "Indo-Aryan",
+    "selectorShows": "Y",
+    "asrTested": "Not Deployed on Pipeline",
+    "ttsTested": "Not Deployed on Pipeline",
+    "uiSource": "Bhashini NMT (IndicTrans-v2)"
+  },
+  {
+    "language": "Maithili",
+    "code": "mai",
+    "native": "मैथिली",
+    "family": "Indo-Aryan",
+    "selectorShows": "Y",
+    "asrTested": "Not Deployed on Pipeline",
+    "ttsTested": "Not Deployed on Pipeline",
+    "uiSource": "Bhashini NMT (IndicTrans-v2)"
+  },
+  {
+    "language": "Malayalam",
+    "code": "ml",
+    "native": "മലയാളം",
+    "family": "Dravidian",
+    "selectorShows": "Y",
+    "asrTested": "Supported (Pipeline Ready: conformer-multilingu)",
+    "ttsTested": "PASS (2608ms, 185966 bytes)",
+    "uiSource": "Manual / Clinical Team"
+  },
+  {
+    "language": "Manipuri",
+    "code": "mni",
+    "native": "মৈতৈলোন্",
+    "family": "Tibeto-Burman",
+    "selectorShows": "Y",
+    "asrTested": "Not Deployed on Pipeline",
+    "ttsTested": "Supported (Model: indic-tts-coqui-misc)",
+    "uiSource": "Bhashini NMT (IndicTrans-v2)"
+  },
+  {
+    "language": "Marathi",
+    "code": "mr",
+    "native": "मराठी",
+    "family": "Indo-Aryan",
+    "selectorShows": "Y",
+    "asrTested": "Supported (Model: conformer-multilingu)",
+    "ttsTested": "Supported (Model: indic-tts-coqui-indo)",
+    "uiSource": "Manual / Clinical Team"
+  },
+  {
+    "language": "Nepali",
+    "code": "ne",
+    "native": "नेपाली",
+    "family": "Indo-Aryan",
+    "selectorShows": "Y",
+    "asrTested": "Not Deployed on Pipeline",
+    "ttsTested": "Not Deployed on Pipeline",
+    "uiSource": "Bhashini NMT (IndicTrans-v2)"
+  },
+  {
+    "language": "Odia",
+    "code": "or",
+    "native": "ଓଡ଼ିଆ",
+    "family": "Indo-Aryan",
+    "selectorShows": "Y",
+    "asrTested": "Supported (Model: conformer-multilingu)",
+    "ttsTested": "Supported (Model: indic-tts-coqui-indo)",
+    "uiSource": "Bhashini NMT (IndicTrans-v2)"
+  },
+  {
+    "language": "Punjabi",
+    "code": "pa",
+    "native": "ਪੰਜਾਬੀ",
+    "family": "Indo-Aryan",
+    "selectorShows": "Y",
+    "asrTested": "Supported (Pipeline Ready: conformer-multilingu)",
+    "ttsTested": "PASS (429ms, 310782 bytes)",
+    "uiSource": "Manual / Clinical Team"
+  },
+  {
+    "language": "Sanskrit",
+    "code": "sa",
+    "native": "संस्कृतम्",
+    "family": "Indo-Aryan",
+    "selectorShows": "Y",
+    "asrTested": "Supported (Model: conformer-multilingu)",
+    "ttsTested": "Not Deployed on Pipeline",
+    "uiSource": "Bhashini NMT (IndicTrans-v2)"
+  },
+  {
+    "language": "Santali",
+    "code": "sat",
+    "native": "ᱥᱟᱱᱛᱟᱲᱤ",
+    "family": "Austroasiatic",
+    "selectorShows": "Y",
+    "asrTested": "Not Deployed on Pipeline",
+    "ttsTested": "Not Deployed on Pipeline",
+    "uiSource": "Bhashini NMT (IndicTrans-v2)"
+  },
+  {
+    "language": "Sindhi",
+    "code": "sd",
+    "native": "سنڌي",
+    "family": "Indo-Aryan",
+    "selectorShows": "Y",
+    "asrTested": "Not Deployed on Pipeline",
+    "ttsTested": "Not Deployed on Pipeline",
+    "uiSource": "Bhashini NMT (IndicTrans-v2)"
+  },
+  {
+    "language": "Tamil",
+    "code": "ta",
+    "native": "தமிழ்",
+    "family": "Dravidian",
+    "selectorShows": "Y",
+    "asrTested": "Supported (Pipeline Ready: conformer-multilingu)",
+    "ttsTested": "PASS (452ms, 240866 bytes)",
+    "uiSource": "Manual / Clinical Team"
+  },
+  {
+    "language": "Telugu",
+    "code": "te",
+    "native": "తెలుగు",
+    "family": "Dravidian",
+    "selectorShows": "Y",
+    "asrTested": "Supported (Model: conformer-multilingu)",
+    "ttsTested": "Supported (Model: indic-tts-coqui-drav)",
+    "uiSource": "Manual / Clinical Team"
+  },
+  {
+    "language": "Urdu",
+    "code": "ur",
+    "native": "اُردُو",
+    "family": "Indo-Aryan",
+    "selectorShows": "Y",
+    "asrTested": "Supported (Pipeline Ready: conformer-multilingu)",
+    "ttsTested": "Not Deployed on Pipeline",
+    "uiSource": "Bhashini NMT (IndicTrans-v2)"
+  }
+]
