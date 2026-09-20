@@ -20,30 +20,13 @@ import {
   FileCode2, 
   Download, 
   Trash2,
-  LogOut, 
-  LogIn, 
-  KeyRound, 
-  Mail, 
-  ArrowRight, 
   ArrowLeft, 
   Shield, 
-  HeartPulse,
-  Eye,
-  EyeOff
+  HeartPulse
 } from 'lucide-react';
 import { api } from '../../services/api';
 
 export default function PhysicianDashboard({ onExitDashboard }) {
-  // Authentication State
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return !!localStorage.getItem('medikiosk_physician_token');
-  });
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loginError, setLoginError] = useState('');
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-
   const [physicianUser, setPhysicianUser] = useState(() => {
     const saved = localStorage.getItem('medikiosk_physician_user');
     if (saved) {
@@ -83,40 +66,6 @@ export default function PhysicianDashboard({ onExitDashboard }) {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  // Handle Login
-  const handleLogin = async (e) => {
-    if (e) e.preventDefault();
-    if (!loginEmail.trim() || !loginPassword.trim()) {
-      setLoginError('Please enter both Doctor Email / ID and Password / PIN.');
-      return;
-    }
-
-    setIsLoggingIn(true);
-    setLoginError('');
-
-    try {
-      const res = await api.loginPhysician(loginEmail.trim(), loginPassword.trim());
-      if (res && res.success && res.user) {
-        localStorage.setItem('medikiosk_physician_token', res.token || ('physician_session_token_' + Date.now()));
-        localStorage.setItem('medikiosk_physician_user', JSON.stringify(res.user));
-        setPhysicianUser(res.user);
-        setIsAuthenticated(true);
-      } else {
-        setLoginError(res.error || 'Authentication failed. Please check your credentials.');
-      }
-    } catch (err) {
-      setLoginError(err.message || 'Invalid Doctor Email or Password. Please ensure this user is created in Hospital Admin.');
-    } finally {
-      setIsLoggingIn(false);
-    }
-  };
-
-  const handleSignOut = () => {
-    localStorage.removeItem('medikiosk_physician_token');
-    localStorage.removeItem('medikiosk_physician_user');
-    setIsAuthenticated(false);
-  };
 
   const handleDownloadDoc = (doc) => {
     try {
@@ -202,7 +151,6 @@ export default function PhysicianDashboard({ onExitDashboard }) {
   };
 
   useEffect(() => {
-    if (!isAuthenticated) return;
     fetchQueue();
     const unsubscribe = api.subscribe((msg) => {
       if (msg.type === 'PATIENT_QUEUE_UPDATE' || msg.type === 'TRIAGE_ALERT_TRIGGERED') {
@@ -213,7 +161,7 @@ export default function PhysicianDashboard({ onExitDashboard }) {
       }
     });
     return () => unsubscribe();
-  }, [selectedEncounterId, isAuthenticated]);
+  }, [selectedEncounterId]);
 
   const fetchDetails = async (id) => {
     if (!id) return;
@@ -230,10 +178,10 @@ export default function PhysicianDashboard({ onExitDashboard }) {
   };
 
   useEffect(() => {
-    if (isAuthenticated && selectedEncounterId) {
+    if (selectedEncounterId) {
       fetchDetails(selectedEncounterId);
     }
-  }, [selectedEncounterId, isAuthenticated]);
+  }, [selectedEncounterId]);
 
   // Handle Inline Summary Edit (Persisted in DB & Logged in Audit Trail)
   const handleSaveFieldEdit = async () => {
@@ -293,191 +241,7 @@ export default function PhysicianDashboard({ onExitDashboard }) {
   const currentAge = getAccurateAge(currentPatient);
 
   // -------------------------------------------------------------
-  // 1. LOGIN SCREEN (MATCHING PATIENT KIOSK DESIGN AESTHETICS)
-  // -------------------------------------------------------------
-  if (!isAuthenticated) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        backgroundColor: 'var(--paper-white)',
-        display: 'flex',
-        flexDirection: 'column',
-        userSelect: 'none'
-      }}>
-        {/* Header */}
-        <header style={{
-          padding: '16px 24px',
-          backgroundColor: 'var(--ink-black)',
-          color: '#fff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--blush-peach)', color: 'var(--sienna-brown)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Stethoscope size={18} />
-            </div>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: '1.05rem' }}>MediKiosk Physician Workstation</div>
-              <div style={{ fontSize: '0.74rem', color: 'var(--slate-light)' }}>Secure OPD Clinical Decision Support &amp; EMR Sign-Off</div>
-            </div>
-          </div>
-
-          {onExitDashboard && (
-            <button
-              onClick={onExitDashboard}
-              className="btn-pill btn-pill-outline btn-pill-sm"
-              style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.25)' }}
-            >
-              Exit to Kiosk
-            </button>
-          )}
-        </header>
-
-        {/* Content */}
-        <main style={{
-          flex: 1,
-          padding: '40px 24px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: 'var(--fog-white)'
-        }}>
-          <div style={{ maxWidth: '540px', width: '100%', margin: '0 auto' }}>
-            
-            <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-              <span className="badge-pill badge-peach" style={{ marginBottom: '10px' }}>
-                Clinical Consultation Access
-              </span>
-              <h2 style={{ fontSize: '2.2rem', marginBottom: '8px', color: 'var(--ink-black)' }}>
-                Physician Sign In
-              </h2>
-              <p style={{ color: 'var(--slate-gray)', fontSize: '0.96rem', lineHeight: 1.5, margin: 0 }}>
-                Enter your medical credentials to access the outpatient queue, review patient histories, and sign off FHIR encounters.
-              </p>
-            </div>
-
-            <div className="card-steep" style={{ padding: '36px' }}>
-              {loginError && (
-                <div style={{
-                  marginBottom: '20px',
-                  padding: '12px 16px',
-                  backgroundColor: 'var(--alert-red-bg)',
-                  color: 'var(--alert-red-text)',
-                  borderRadius: '12px',
-                  fontSize: '0.88rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}>
-                  <AlertTriangle size={16} />
-                  <span>{loginError}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: 600, color: 'var(--ink-black)', marginBottom: '8px' }}>
-                    Doctor Email / Medical Council Reg ID:
-                  </label>
-                  <input
-                    type="email"
-                    className="input-steep"
-                    style={{ fontSize: '1.05rem' }}
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    placeholder=""
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: 600, color: 'var(--ink-black)', marginBottom: '8px' }}>
-                    Clinical Password / OPD PIN:
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      className="input-steep"
-                      style={{ fontSize: '1.05rem', paddingRight: '46px' }}
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      placeholder=""
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      style={{
-                        position: 'absolute',
-                        right: '12px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: 'var(--slate-gray)',
-                        padding: '4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        borderRadius: '6px',
-                        transition: 'color 0.15s ease'
-                      }}
-                      title={showPassword ? 'Hide PIN' : 'Show PIN'}
-                      aria-label={showPassword ? 'Hide PIN' : 'Show PIN'}
-                      onMouseEnter={(e) => e.currentTarget.style.color = 'var(--ink-black)'}
-                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--slate-gray)'}
-                    >
-                      {showPassword ? <EyeOff size={19} /> : <Eye size={19} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '12px', marginTop: '8px', flexWrap: 'wrap' }}>
-                  {onExitDashboard && (
-                    <button
-                      type="button"
-                      onClick={onExitDashboard}
-                      className="btn-pill btn-pill-outline kiosk-touch-target"
-                      style={{ flex: '1 1 120px' }}
-                    >
-                      <ArrowLeft size={18} />
-                      <span>Back</span>
-                    </button>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={isLoggingIn}
-                    className="btn-pill btn-pill-primary kiosk-touch-target"
-                    style={{ flex: '2 1 200px' }}
-                  >
-                    <span>{isLoggingIn ? 'Verifying...' : 'Sign In to Workstation'}</span>
-                    <ArrowRight size={18} />
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            <div style={{ marginTop: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', fontSize: '0.78rem', color: 'var(--slate-gray)' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <ShieldCheck size={14} color="var(--success-green-text)" /> ABDM HIP M1/M2 Certified
-              </span>
-              <span>•</span>
-              <span>DPDP Act 2023 Compliant</span>
-              <span>•</span>
-              <span>256-Bit TLS</span>
-            </div>
-
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  // -------------------------------------------------------------
-  // 2. MAIN PHYSICIAN DASHBOARD WORKSTATION
+  // MAIN PHYSICIAN DASHBOARD WORKSTATION
   // -------------------------------------------------------------
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--fog-white)' }}>
@@ -511,16 +275,6 @@ export default function PhysicianDashboard({ onExitDashboard }) {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           <span className="badge-pill badge-peach">{physicianUser.specialty || physicianUser.department || 'OPD Clinical Unit'}</span>
-          
-          <button
-            onClick={handleSignOut}
-            className="btn-pill btn-pill-outline btn-pill-sm"
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', minHeight: '38px' }}
-            title="Sign out of doctor session"
-          >
-            <LogOut size={14} />
-            <span>Sign Out</span>
-          </button>
 
           {onExitDashboard && (
             <button onClick={onExitDashboard} className="btn-pill btn-pill-secondary btn-pill-sm" style={{ minHeight: '38px' }}>
