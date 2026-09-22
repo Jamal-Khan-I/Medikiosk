@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import MarketingLayout from './surfaces/marketing/MarketingLayout';
 import Home from './surfaces/marketing/Home';
 import HowItWorks from './surfaces/marketing/HowItWorks';
@@ -21,10 +21,90 @@ import {
   Sparkles
 } from 'lucide-react';
 
+const parseHash = (hashString) => {
+  const clean = (hashString || '').replace(/^#/, '').trim();
+  if (!clean || clean === 'home') {
+    return { surface: 'MARKETING', tab: 'home' };
+  }
+  if (clean.startsWith('kiosk')) {
+    return { surface: 'KIOSK', tab: 'home' };
+  }
+  if (clean.startsWith('physician')) {
+    return { surface: 'PHYSICIAN', tab: 'home' };
+  }
+  if (clean.startsWith('admin')) {
+    return { surface: 'ADMIN', tab: 'home' };
+  }
+  if (clean.startsWith('triage')) {
+    return { surface: 'TRIAGE', tab: 'home' };
+  }
+  const marketingTabs = ['how-it-works', 'for-hospitals', 'for-patients', 'privacy-policy', 'contact'];
+  if (marketingTabs.includes(clean)) {
+    return { surface: 'MARKETING', tab: clean };
+  }
+  return { surface: 'MARKETING', tab: 'home' };
+};
+
 export default function App() {
   // Surface Navigation: 'MARKETING' | 'KIOSK' | 'PHYSICIAN' | 'ADMIN' | 'TRIAGE'
-  const [activeSurface, setActiveSurface] = useState('MARKETING');
-  const [marketingTab, setMarketingTab] = useState('home');
+  const [activeSurface, setActiveSurfaceState] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return parseHash(window.location.hash).surface;
+    }
+    return 'MARKETING';
+  });
+  const [marketingTab, setMarketingTabState] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return parseHash(window.location.hash).tab;
+    }
+    return 'home';
+  });
+
+  const navigateTo = useCallback((surface, tab = 'home', pushHistory = true) => {
+    setActiveSurfaceState(surface);
+    setMarketingTabState(tab);
+
+    let targetHash = '#home';
+    if (surface === 'KIOSK') targetHash = '#kiosk';
+    else if (surface === 'PHYSICIAN') targetHash = '#physician';
+    else if (surface === 'ADMIN') targetHash = '#admin';
+    else if (surface === 'TRIAGE') targetHash = '#triage';
+    else if (surface === 'MARKETING') targetHash = tab === 'home' ? '#home' : `#${tab}`;
+
+    if (typeof window !== 'undefined') {
+      if (window.location.hash !== targetHash) {
+        if (pushHistory) {
+          window.history.pushState({ surface, tab }, '', targetHash);
+        } else {
+          window.history.replaceState({ surface, tab }, '', targetHash);
+        }
+      }
+    }
+  }, []);
+
+  const setActiveSurface = (surface) => navigateTo(surface, marketingTab);
+  const setMarketingTab = (tab) => navigateTo('MARKETING', tab);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const parsed = parseHash(window.location.hash);
+      setActiveSurfaceState(parsed.surface);
+      setMarketingTabState(parsed.tab);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('hashchange', handlePopState);
+
+    // Initialize clean URL hash if missing
+    if (typeof window !== 'undefined' && !window.location.hash) {
+      window.history.replaceState({ surface: 'MARKETING', tab: 'home' }, '', '#home');
+    }
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('hashchange', handlePopState);
+    };
+  }, []);
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>

@@ -69,6 +69,16 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+a, button, input, select, textarea, [role="button"] {
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-touch-callout: none;
+}
+
+:focus:not(:focus-visible) {
+  outline: none !important;
 }
 
 html {
@@ -344,6 +354,40 @@ html, body {
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+}
+.table-responsive table {
+  min-width: 680px;
+}
+
+/* Mobile responsive card layouts */
+.mobile-card-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.mobile-data-card {
+  background: var(--paper-white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-subtle);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: var(--shadow-sm);
+}
+.mobile-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.mobile-card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
 }
 
 /* Consent Row & 44px Touch Target */

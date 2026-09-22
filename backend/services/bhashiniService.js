@@ -404,7 +404,8 @@ class BhashiniService {
           'Content-Type': 'application/json',
           'Authorization': this.getInferenceKey()
         },
-        body: JSON.stringify(computePayload)
+        body: JSON.stringify(computePayload),
+        signal: AbortSignal.timeout(6000)
       });
 
       if (res.ok) {

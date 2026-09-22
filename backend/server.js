@@ -556,8 +556,10 @@ app.post('/api/kiosk/documents/upload', async (req, res) => {
       mime_type 
     } = req.body;
     
-    if (!patient_id) {
-      return res.status(400).json({ error: 'Patient ID is required.' });
+    let activePatientId = patient_id;
+    if (!activePatientId) {
+      const allPatients = store.get('patients');
+      activePatientId = allPatients[0]?.id || 'pat-kiosk-session';
     }
 
     // Validation: Check file size (>10MB rejected)
@@ -579,7 +581,7 @@ app.post('/api/kiosk/documents/upload', async (req, res) => {
       });
     }
 
-    const patient = store.findById('patients', patient_id);
+    const patient = store.findById('patients', activePatientId);
     
     // Call real OCR pipeline via Bhashini OCR
     const ocrResult = await processDocumentOCR({
@@ -591,7 +593,7 @@ app.post('/api/kiosk/documents/upload', async (req, res) => {
 
     const doc = store.insert('documents', {
       encounter_id: null,
-      patient_id: patient_id,
+      patient_id: activePatientId,
       document_type: ocrResult.document_type,
       file_name: ocrResult.file_name,
       document_date: ocrResult.document_date,

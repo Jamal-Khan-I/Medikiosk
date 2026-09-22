@@ -35,6 +35,15 @@ export default function HospitalAdmin({ onExitAdmin }) {
   const [isUpdatingStaff, setIsUpdatingStaff] = useState(false);
   const [staffToRemove, setStaffToRemove] = useState(null);
   const [isRemovingStaff, setIsRemovingStaff] = useState(false);
+  const [isMobileScreen, setIsMobileScreen] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileScreen(typeof window !== 'undefined' && window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   const [newStaff, setNewStaff] = useState({
     name: '',
@@ -151,26 +160,38 @@ export default function HospitalAdmin({ onExitAdmin }) {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--fog-white)' }}>
       {/* Admin Top Header */}
       <header style={{
-        padding: '16px 32px',
+        padding: '12px 18px',
         backgroundColor: 'var(--paper-white)',
         borderBottom: '1px solid var(--border-light)',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--ink-black)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: '1 1 auto' }}>
+          <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--ink-black)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Building2 size={20} />
           </div>
-          <div>
-            <div style={{ fontWeight: 600, fontSize: '1.05rem' }}>Hospital Operations & Administrative Console</div>
-            <div style={{ fontSize: '0.76rem', color: 'var(--slate-gray)' }}>Apex Healthcare Systems • Multi-Kiosk Fleet ID: APX-MUM-01</div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--ink-black)', lineHeight: 1.25 }}>
+              Hospital Operations & Administrative Console
+            </div>
+            <div style={{ fontSize: '0.74rem', color: 'var(--slate-gray)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              Apex Healthcare Systems • Multi-Kiosk Fleet ID: APX-MUM-01
+            </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span className="badge-pill badge-peach">Hospital Admin</span>
-          <button onClick={onExitAdmin} className="btn-pill btn-pill-outline btn-pill-sm">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+          <span className="badge-pill badge-peach" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+            Hospital Admin
+          </span>
+          <button 
+            onClick={onExitAdmin} 
+            className="btn-pill btn-pill-outline btn-pill-sm"
+            style={{ whiteSpace: 'nowrap', flexShrink: 0, minWidth: 'fit-content' }}
+          >
             Exit Admin
           </button>
         </div>
@@ -286,113 +307,178 @@ export default function HospitalAdmin({ onExitAdmin }) {
               )}
             </div>
 
-            {/* Patients Table */}
-            <div className="card-steep" style={{ padding: '0', overflow: 'hidden' }}>
-              <div className="table-responsive">
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem', textAlign: 'left' }}>
-                <thead style={{ backgroundColor: 'var(--fog-white)', borderBottom: '1px solid var(--border-light)' }}>
-                  <tr>
-                    <th style={{ padding: '14px 18px', fontWeight: 600 }}>Token</th>
-                    <th style={{ padding: '14px 18px', fontWeight: 600 }}>Check-in Entry Time</th>
-                    <th style={{ padding: '14px 18px', fontWeight: 600 }}>Patient Demographics</th>
-                    <th style={{ padding: '14px 18px', fontWeight: 600 }}>ABHA ID</th>
-                    <th style={{ padding: '14px 18px', fontWeight: 600 }}>Chief Complaint & Triage</th>
-                    <th style={{ padding: '14px 18px', fontWeight: 600 }}>Intake Stream</th>
-                    <th style={{ padding: '14px 18px', fontWeight: 600 }}>Docs</th>
-                    <th style={{ padding: '14px 18px', fontWeight: 600 }}>Queue Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredPatients.length === 0 ? (
-                    <tr>
-                      <td colSpan="8" style={{ padding: '48px 20px', textAlign: 'center', color: 'var(--slate-gray)' }}>
-                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--fog-white)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px auto' }}>
-                          <User size={22} color="var(--slate-gray)" />
-                        </div>
-                        <div style={{ fontWeight: 600, color: 'var(--ink-black)', marginBottom: '4px' }}>
-                          {patientSearchQuery ? 'No matching patient records found' : 'No patients checked in yet'}
-                        </div>
-                        <p style={{ fontSize: '0.82rem', margin: 0 }}>
-                          {patientSearchQuery ? 'Try searching with a different name, token, or mobile number.' : 'Patients registered at the OPD Kiosks will appear here live in real-time.'}
-                        </p>
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredPatients.map((p, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid var(--border-light)', backgroundColor: p.is_red_flagged ? 'rgba(239, 68, 68, 0.04)' : '#fff' }}>
-                        <td style={{ padding: '14px 18px' }}>
-                          <span className="badge-pill badge-peach" style={{ fontWeight: 700, fontSize: '0.8rem' }}>
+            {/* Patients Inflow Display: Responsive Mobile Cards vs Desktop Table */}
+            {isMobileScreen ? (
+              <div className="mobile-card-grid">
+                {filteredPatients.length === 0 ? (
+                  <div className="card-steep" style={{ padding: '36px 16px', textAlign: 'center', color: 'var(--slate-gray)' }}>
+                    <User size={22} color="var(--slate-gray)" style={{ margin: '0 auto 8px auto', display: 'block' }} />
+                    <div style={{ fontWeight: 600, color: 'var(--ink-black)', marginBottom: '4px' }}>
+                      {patientSearchQuery ? 'No matching patient records found' : 'No patients checked in yet'}
+                    </div>
+                    <p style={{ fontSize: '0.8rem', margin: 0 }}>
+                      {patientSearchQuery ? 'Try another search query.' : 'Patients registered at OPD Kiosks will appear here live.'}
+                    </p>
+                  </div>
+                ) : (
+                  filteredPatients.map((p, idx) => (
+                    <div 
+                      key={idx} 
+                      className="mobile-data-card"
+                      style={{ 
+                        borderLeft: p.is_red_flagged ? '4px solid var(--alert-red-bright)' : '4px solid var(--border-light)',
+                        backgroundColor: p.is_red_flagged ? 'rgba(239, 68, 68, 0.03)' : '#fff'
+                      }}
+                    >
+                      <div className="mobile-card-header">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span className="badge-pill badge-peach" style={{ fontWeight: 700, fontSize: '0.82rem' }}>
                             {p.token_number || 'TK-101'}
                           </span>
-                        </td>
-
-                        <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
-                          <div style={{ fontWeight: 600, color: 'var(--ink-black)' }}>
-                            {p.entry_time ? new Date(p.entry_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
-                          </div>
-                          <div style={{ fontSize: '0.74rem', color: 'var(--slate-gray)' }}>
-                            {p.entry_time ? new Date(p.entry_time).toLocaleDateString() : 'Today'}
-                          </div>
-                        </td>
-
-                        <td style={{ padding: '14px 18px' }}>
-                          <div style={{ fontWeight: 600, color: 'var(--ink-black)' }}>{p.patient_name}</div>
-                          <div style={{ fontSize: '0.76rem', color: 'var(--slate-gray)' }}>
-                            {p.gender} • {p.age} yrs • Phone: {p.phone_number || 'N/A'}
-                          </div>
-                        </td>
-
-                        <td style={{ padding: '14px 18px', fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--slate-gray)' }}>
-                          {p.abha_number || 'Walk-in Direct'}
-                        </td>
-
-                        <td style={{ padding: '14px 18px', maxWidth: '240px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                            {p.is_red_flagged ? (
-                              <span className="badge-pill badge-red" style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
-                                <AlertTriangle size={10} />
-                                <span>RED FLAG</span>
-                              </span>
-                            ) : (
-                              <span className="badge-pill badge-gray" style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
-                                Routine OPD
-                              </span>
-                            )}
-                          </div>
-                          <div style={{ fontSize: '0.82rem', color: 'var(--ink-soft)', lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.chief_complaint}>
-                            {p.chief_complaint || 'General Consultation'}
-                          </div>
-                        </td>
-
-                        <td style={{ padding: '14px 18px', fontSize: '0.8rem' }}>
-                          <span className="badge-pill badge-gray">
-                            {p.intake_mode === 'AYUSH_DASHAVIDHA' ? 'AYUSH' : 'SOCRATES'}
-                          </span>
-                        </td>
-
-                        <td style={{ padding: '14px 18px' }}>
-                          {p.documents_count > 0 ? (
-                            <span className="badge-pill badge-peach" style={{ fontSize: '0.74rem' }}>
-                              <FileText size={11} />
-                              <span>{p.documents_count} Files</span>
+                          {p.is_red_flagged ? (
+                            <span className="badge-pill badge-red" style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
+                              <AlertTriangle size={10} />
+                              <span>RED FLAG</span>
                             </span>
                           ) : (
-                            <span style={{ fontSize: '0.76rem', color: 'var(--slate-gray)' }}>0</span>
+                            <span className="badge-pill badge-gray" style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
+                              Routine OPD
+                            </span>
                           )}
-                        </td>
+                        </div>
+                        <span className={`badge-pill ${p.status === 'CONFIRMED' ? 'badge-green' : 'badge-gray'}`} style={{ fontSize: '0.72rem' }}>
+                          {p.status === 'CONFIRMED' ? 'Signed Off' : 'In Queue'}
+                        </span>
+                      </div>
 
-                        <td style={{ padding: '14px 18px' }}>
-                          <span className={`badge-pill ${p.status === 'CONFIRMED' ? 'badge-green' : 'badge-gray'}`} style={{ fontSize: '0.74rem' }}>
-                            {p.status === 'CONFIRMED' ? 'Signed Off' : 'In OPD Queue'}
-                          </span>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.98rem', color: 'var(--ink-black)' }}>{p.patient_name}</div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--slate-gray)', marginTop: '2px' }}>
+                          {p.gender} • {p.age} yrs • Phone: {p.phone_number || 'N/A'}
+                        </div>
+                      </div>
+
+                      <div style={{ backgroundColor: 'var(--fog-white)', padding: '8px 12px', borderRadius: '8px', fontSize: '0.82rem' }}>
+                        <span style={{ color: 'var(--slate-gray)', fontWeight: 500 }}>Chief Complaint: </span>
+                        <span style={{ color: 'var(--ink-soft)' }}>{p.chief_complaint || 'General Consultation'}</span>
+                      </div>
+
+                      <div className="mobile-card-row" style={{ fontSize: '0.76rem', color: 'var(--slate-gray)' }}>
+                        <span>ABHA: <span style={{ fontFamily: 'monospace', color: 'var(--ink-black)' }}>{p.abha_number || 'Walk-in'}</span></span>
+                        <span>{p.entry_time ? new Date(p.entry_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Today'}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : (
+              <div className="card-steep" style={{ padding: '0', overflow: 'hidden' }}>
+                <div className="table-responsive">
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem', textAlign: 'left' }}>
+                  <thead style={{ backgroundColor: 'var(--fog-white)', borderBottom: '1px solid var(--border-light)' }}>
+                    <tr>
+                      <th style={{ padding: '14px 18px', fontWeight: 600 }}>Token</th>
+                      <th style={{ padding: '14px 18px', fontWeight: 600 }}>Check-in Entry Time</th>
+                      <th style={{ padding: '14px 18px', fontWeight: 600 }}>Patient Demographics</th>
+                      <th style={{ padding: '14px 18px', fontWeight: 600 }}>ABHA ID</th>
+                      <th style={{ padding: '14px 18px', fontWeight: 600 }}>Chief Complaint & Triage</th>
+                      <th style={{ padding: '14px 18px', fontWeight: 600 }}>Intake Stream</th>
+                      <th style={{ padding: '14px 18px', fontWeight: 600 }}>Docs</th>
+                      <th style={{ padding: '14px 18px', fontWeight: 600 }}>Queue Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredPatients.length === 0 ? (
+                      <tr>
+                        <td colSpan="8" style={{ padding: '48px 20px', textAlign: 'center', color: 'var(--slate-gray)' }}>
+                          <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--fog-white)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px auto' }}>
+                            <User size={22} color="var(--slate-gray)" />
+                          </div>
+                          <div style={{ fontWeight: 600, color: 'var(--ink-black)', marginBottom: '4px' }}>
+                            {patientSearchQuery ? 'No matching patient records found' : 'No patients checked in yet'}
+                          </div>
+                          <p style={{ fontSize: '0.82rem', margin: 0 }}>
+                            {patientSearchQuery ? 'Try searching with a different name, token, or mobile number.' : 'Patients registered at the OPD Kiosks will appear here live in real-time.'}
+                          </p>
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      filteredPatients.map((p, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid var(--border-light)', backgroundColor: p.is_red_flagged ? 'rgba(239, 68, 68, 0.04)' : '#fff' }}>
+                          <td style={{ padding: '14px 18px' }}>
+                            <span className="badge-pill badge-peach" style={{ fontWeight: 700, fontSize: '0.8rem' }}>
+                              {p.token_number || 'TK-101'}
+                            </span>
+                          </td>
+
+                          <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
+                            <div style={{ fontWeight: 600, color: 'var(--ink-black)' }}>
+                              {p.entry_time ? new Date(p.entry_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
+                            </div>
+                            <div style={{ fontSize: '0.74rem', color: 'var(--slate-gray)' }}>
+                              {p.entry_time ? new Date(p.entry_time).toLocaleDateString() : 'Today'}
+                            </div>
+                          </td>
+
+                          <td style={{ padding: '14px 18px' }}>
+                            <div style={{ fontWeight: 600, color: 'var(--ink-black)' }}>{p.patient_name}</div>
+                            <div style={{ fontSize: '0.76rem', color: 'var(--slate-gray)' }}>
+                              {p.gender} • {p.age} yrs • Phone: {p.phone_number || 'N/A'}
+                            </div>
+                          </td>
+
+                          <td style={{ padding: '14px 18px', fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--slate-gray)' }}>
+                            {p.abha_number || 'Walk-in Direct'}
+                          </td>
+
+                          <td style={{ padding: '14px 18px', maxWidth: '240px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                              {p.is_red_flagged ? (
+                                <span className="badge-pill badge-red" style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
+                                  <AlertTriangle size={10} />
+                                  <span>RED FLAG</span>
+                                </span>
+                              ) : (
+                                <span className="badge-pill badge-gray" style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
+                                  Routine OPD
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: '0.82rem', color: 'var(--ink-soft)', lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.chief_complaint}>
+                              {p.chief_complaint || 'General Consultation'}
+                            </div>
+                          </td>
+
+                          <td style={{ padding: '14px 18px', fontSize: '0.8rem' }}>
+                            <span className="badge-pill badge-gray">
+                              {p.intake_mode === 'AYUSH_DASHAVIDHA' ? 'AYUSH' : 'SOCRATES'}
+                            </span>
+                          </td>
+
+                          <td style={{ padding: '14px 18px' }}>
+                            {p.documents_count > 0 ? (
+                              <span className="badge-pill badge-peach" style={{ fontSize: '0.74rem' }}>
+                                <FileText size={11} />
+                                <span>{p.documents_count} Files</span>
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '0.76rem', color: 'var(--slate-gray)' }}>0</span>
+                            )}
+                          </td>
+
+                          <td style={{ padding: '14px 18px' }}>
+                            <span className={`badge-pill ${p.status === 'CONFIRMED' ? 'badge-green' : 'badge-gray'}`} style={{ fontSize: '0.74rem' }}>
+                              {p.status === 'CONFIRMED' ? 'Signed Off' : 'In OPD Queue'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -412,97 +498,143 @@ export default function HospitalAdmin({ onExitAdmin }) {
               </button>
             </div>
 
-            <div className="card-steep" style={{ padding: '0', overflow: 'hidden' }}>
-              <div className="table-responsive">
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem', textAlign: 'left' }}>
-                <thead style={{ backgroundColor: 'var(--fog-white)', borderBottom: '1px solid var(--border-light)' }}>
-                  <tr>
-                    <th style={{ padding: '14px 20px', fontWeight: 600 }}>Staff Name</th>
-                    <th style={{ padding: '14px 20px', fontWeight: 600 }}>Role</th>
-                    <th style={{ padding: '14px 20px', fontWeight: 600 }}>Clinical Specialty</th>
-                    <th style={{ padding: '14px 20px', fontWeight: 600 }}>NMC / Reg Number</th>
-                    <th style={{ padding: '14px 20px', fontWeight: 600 }}>Status</th>
-                    <th style={{ padding: '14px 20px', fontWeight: 600 }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {staff.map((s, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid var(--border-light)' }}>
-                      <td style={{ padding: '14px 20px', fontWeight: 500 }}>
-                        {s.name}
-                        <div style={{ fontSize: '0.76rem', color: 'var(--slate-gray)' }}>{s.email}</div>
-                      </td>
-                      <td style={{ padding: '14px 20px' }}>
-                        <span className="badge-pill badge-peach">{s.role}</span>
-                      </td>
-                      <td style={{ padding: '14px 20px', color: 'var(--slate-gray)' }}>
-                        {s.specialty || s.department || 'General Medicine'}
-                      </td>
-                      <td style={{ padding: '14px 20px', fontFamily: 'monospace' }}>{s.nmc_registration_number || 'N/A'}</td>
-                      <td style={{ padding: '14px 20px' }}>
-                        <span className={`badge-pill ${s.is_active !== false ? 'badge-green' : 'badge-red'}`}>
-                          {s.is_active !== false ? 'Active' : 'Inactive (Deactivated)'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '14px 20px', whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
-                          <button
-                            type="button"
-                            onClick={() => setEditingStaff({
-                              ...s,
-                              password: ''
-                            })}
-                            className="btn-pill btn-pill-sm btn-pill-outline"
-                            style={{
-                              fontSize: '0.78rem',
-                              color: 'var(--ink-black)',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '4px',
-                              whiteSpace: 'nowrap',
-                              flexShrink: 0
-                            }}
-                            title="Edit user details"
-                          >
-                            <Edit3 size={12} />
-                            <span>Edit</span>
-                          </button>
-                          <button
-                            onClick={() => handleToggleStaffStatus(s.id, s.is_active !== false)}
-                            className={`btn-pill btn-pill-sm ${s.is_active !== false ? 'btn-pill-outline' : 'btn-pill-peach'}`}
-                            style={{ fontSize: '0.78rem', whiteSpace: 'nowrap', flexShrink: 0, minWidth: '92px', justifyContent: 'center' }}
-                          >
-                            {s.is_active !== false ? 'Deactivate' : 'Reactivate'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setStaffToRemove(s)}
-                            className="btn-pill btn-pill-sm btn-pill-outline"
-                            style={{
-                              fontSize: '0.78rem',
-                              color: '#dc2626',
-                              borderColor: '#fca5a5',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '4px',
-                              whiteSpace: 'nowrap',
-                              flexShrink: 0
-                            }}
-                            title="Permanently remove physician from hospital roster"
-                          >
-                            <Trash2 size={12} />
-                            <span>Remove</span>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            {/* Staff Accounts Display: Responsive Mobile Cards vs Desktop Table */}
+            {isMobileScreen ? (
+              <div className="mobile-card-grid">
+                {staff.map((s, idx) => (
+                  <div key={idx} className="mobile-data-card">
+                    <div className="mobile-card-header">
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--ink-black)' }}>{s.name}</div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--slate-gray)' }}>{s.email}</div>
+                      </div>
+                      <span className="badge-pill badge-peach">{s.role}</span>
+                    </div>
+
+                    <div style={{ fontSize: '0.82rem', color: 'var(--ink-soft)' }}>
+                      <div><strong style={{ color: 'var(--slate-gray)' }}>Specialty:</strong> {s.specialty || s.department || 'General Medicine'}</div>
+                      <div style={{ marginTop: '2px' }}><strong style={{ color: 'var(--slate-gray)' }}>NMC Reg:</strong> <span style={{ fontFamily: 'monospace' }}>{s.nmc_registration_number || 'N/A'}</span></div>
+                    </div>
+
+                    <div className="mobile-card-row" style={{ paddingTop: '8px', borderTop: '1px solid var(--border-light)' }}>
+                      <span className={`badge-pill ${s.is_active !== false ? 'badge-green' : 'badge-red'}`} style={{ fontSize: '0.72rem' }}>
+                        {s.is_active !== false ? 'Active' : 'Deactivated'}
+                      </span>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setEditingStaff({ ...s, password: '' })}
+                          className="btn-pill btn-pill-sm btn-pill-outline"
+                          style={{ fontSize: '0.76rem', padding: '4px 10px' }}
+                        >
+                          <Edit3 size={12} />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          onClick={() => handleToggleStaffStatus(s.id, s.is_active !== false)}
+                          className={`btn-pill btn-pill-sm ${s.is_active !== false ? 'btn-pill-outline' : 'btn-pill-peach'}`}
+                          style={{ fontSize: '0.76rem', padding: '4px 10px' }}
+                        >
+                          {s.is_active !== false ? 'Deactivate' : 'Reactivate'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
+            ) : (
+              <div className="card-steep" style={{ padding: '0', overflow: 'hidden' }}>
+                <div className="table-responsive">
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem', textAlign: 'left' }}>
+                  <thead style={{ backgroundColor: 'var(--fog-white)', borderBottom: '1px solid var(--border-light)' }}>
+                    <tr>
+                      <th style={{ padding: '14px 20px', fontWeight: 600 }}>Staff Name</th>
+                      <th style={{ padding: '14px 20px', fontWeight: 600 }}>Role</th>
+                      <th style={{ padding: '14px 20px', fontWeight: 600 }}>Clinical Specialty</th>
+                      <th style={{ padding: '14px 20px', fontWeight: 600 }}>NMC / Reg Number</th>
+                      <th style={{ padding: '14px 20px', fontWeight: 600 }}>Status</th>
+                      <th style={{ padding: '14px 20px', fontWeight: 600 }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {staff.map((s, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                        <td style={{ padding: '14px 20px', fontWeight: 500 }}>
+                          {s.name}
+                          <div style={{ fontSize: '0.76rem', color: 'var(--slate-gray)' }}>{s.email}</div>
+                        </td>
+                        <td style={{ padding: '14px 20px' }}>
+                          <span className="badge-pill badge-peach">{s.role}</span>
+                        </td>
+                        <td style={{ padding: '14px 20px', color: 'var(--slate-gray)' }}>
+                          {s.specialty || s.department || 'General Medicine'}
+                        </td>
+                        <td style={{ padding: '14px 20px', fontFamily: 'monospace' }}>{s.nmc_registration_number || 'N/A'}</td>
+                        <td style={{ padding: '14px 20px' }}>
+                          <span className={`badge-pill ${s.is_active !== false ? 'badge-green' : 'badge-red'}`}>
+                            {s.is_active !== false ? 'Active' : 'Inactive (Deactivated)'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '14px 20px', whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
+                            <button
+                              type="button"
+                              onClick={() => setEditingStaff({
+                                ...s,
+                                password: ''
+                              })}
+                              className="btn-pill btn-pill-sm btn-pill-outline"
+                              style={{
+                                fontSize: '0.78rem',
+                                color: 'var(--ink-black)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '4px',
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0
+                              }}
+                              title="Edit user details"
+                            >
+                              <Edit3 size={12} />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              onClick={() => handleToggleStaffStatus(s.id, s.is_active !== false)}
+                              className={`btn-pill btn-pill-sm ${s.is_active !== false ? 'btn-pill-outline' : 'btn-pill-peach'}`}
+                              style={{ fontSize: '0.78rem', whiteSpace: 'nowrap', flexShrink: 0, minWidth: '92px', justifyContent: 'center' }}
+                            >
+                              {s.is_active !== false ? 'Deactivate' : 'Reactivate'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setStaffToRemove(s)}
+                              className="btn-pill btn-pill-sm btn-pill-outline"
+                              style={{
+                                fontSize: '0.78rem',
+                                color: '#dc2626',
+                                borderColor: '#fca5a5',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '4px',
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0
+                              }}
+                              title="Permanently remove physician from hospital roster"
+                            >
+                              <Trash2 size={12} />
+                              <span>Remove</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

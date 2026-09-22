@@ -294,7 +294,115 @@ export default function PatientKiosk({ onExitKiosk }) {
     loadQuestions(answers.chief_complaint);
   }, [intakeMode]);
 
-  // Bhashini Multilingual Voice Guide (Streaming Neural Voice via Bhashini TTS)
+  // BCP-47 Language Mapping for Native Web Speech API
+  const BCP47_MAP = {
+    hi: 'hi-IN',
+    en: 'en-IN',
+    ta: 'ta-IN',
+    te: 'te-IN',
+    bn: 'bn-IN',
+    mr: 'mr-IN',
+    gu: 'gu-IN',
+    kn: 'kn-IN',
+    ml: 'ml-IN',
+    pa: 'pa-IN',
+    as: 'as-IN',
+    or: 'or-IN',
+    ur: 'ur-IN',
+    ne: 'ne-NP',
+    sa: 'sa-IN',
+    ks: 'ks-IN',
+    sd: 'sd-IN',
+    mai: 'mai-IN',
+    doi: 'doi-IN',
+    gom: 'kok-IN',
+    mni: 'mni-IN',
+    sat: 'sat-IN',
+    brx: 'brx-IN'
+  };
+
+  // Fallback speech synthesis via browser native speech engine
+  const speakBrowserSpeechSynthesis = (cleanText, langCode) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      const bcp47 = BCP47_MAP[langCode] || 'hi-IN';
+      utterance.lang = bcp47;
+      utterance.rate = 0.95;
+      utterance.pitch = 1.0;
+
+      const voices = window.speechSynthesis.getVoices?.() || [];
+      const matchedVoice = voices.find(v => v.lang === bcp47 || v.lang.toLowerCase().startsWith(langCode.toLowerCase()));
+      if (matchedVoice) {
+        utterance.voice = matchedVoice;
+      }
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.warn('[SpeechSynthesis Notice]:', e);
+    }
+  };
+
+  // Prime mobile browser AudioContext & audio element on first user touch gesture
+  useEffect(() => {
+    const unlockAudio = () => {
+      try {
+        const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFRm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
+        silentAudio.volume = 0.01;
+        silentAudio.play().catch(() => {});
+
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+          const ctx = new AudioCtx();
+          if (ctx.state === 'suspended') {
+            ctx.resume().catch(() => {});
+          }
+        }
+      } catch (e) {}
+
+      window.removeEventListener('click', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+    };
+
+    window.addEventListener('click', unlockAudio, { once: true });
+    window.addEventListener('touchstart', unlockAudio, { once: true });
+    return () => {
+      window.removeEventListener('click', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+    };
+  }, []);
+
+  // Browser Back / Forward History Navigation for Kiosk Steps
+  const isPopNavRef = useRef(false);
+
+  useEffect(() => {
+    if (isPopNavRef.current) {
+      isPopNavRef.current = false;
+      return;
+    }
+    if (typeof window !== 'undefined') {
+      window.history.pushState({ isKioskStep: true, step, qIdx: currentQuestionIdx }, '', '#kiosk');
+    }
+  }, [step, currentQuestionIdx]);
+
+  useEffect(() => {
+    const handleKioskPopState = (e) => {
+      if (e.state && e.state.isKioskStep) {
+        isPopNavRef.current = true;
+        setStep(e.state.step);
+        if (typeof e.state.qIdx === 'number') {
+          setCurrentQuestionIdx(e.state.qIdx);
+        }
+      } else if (onExitKiosk) {
+        onExitKiosk();
+      }
+    };
+
+    window.addEventListener('popstate', handleKioskPopState);
+    return () => window.removeEventListener('popstate', handleKioskPopState);
+  }, [onExitKiosk]);
+
+  // Bhashini Multilingual Voice Guide with Automatic SpeechSynthesis Fallback
   const speakText = (text, lang = selectedLang) => {
     if (!text || !text.trim()) return;
 
@@ -315,7 +423,7 @@ export default function PatientKiosk({ onExitKiosk }) {
     speechRequestIdRef.current += 1;
     const reqId = speechRequestIdRef.current;
 
-    // Stop any ongoing audio playback
+    // Stop any ongoing audio playback and speech synthesis
     if (activeAudioRef.current) {
       try {
         activeAudioRef.current.pause();
@@ -323,8 +431,18 @@ export default function PatientKiosk({ onExitKiosk }) {
       } catch (e) {}
       activeAudioRef.current = null;
     }
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      try { window.speechSynthesis.cancel(); } catch (e) {}
+    }
 
-    // Stream Natural Voice exclusively from Bhashini TTS
+    let fallbackTriggered = false;
+    const triggerFallback = () => {
+      if (fallbackTriggered || speechRequestIdRef.current !== reqId) return;
+      fallbackTriggered = true;
+      speakBrowserSpeechSynthesis(cleanText, lang);
+    };
+
+    // Stream Natural Voice from Bhashini TTS
     const ttsUrl = `${API_BASE}/voice/tts?text=${encodeURIComponent(cleanText)}&lang=${encodeURIComponent(lang)}&gender=female`;
 
     const audio = new Audio();
@@ -332,13 +450,14 @@ export default function PatientKiosk({ onExitKiosk }) {
     activeAudioRef.current = audio;
 
     audio.onerror = () => {
-      console.warn('[Bhashini TTS] Audio stream notice for text:', cleanText.slice(0, 30));
+      console.warn('[Bhashini TTS] Audio notice, falling back to speech synthesis for:', lang);
+      triggerFallback();
     };
 
     audio.play().catch(playErr => {
-      // AbortError is normal when speech is replaced or interrupted
       if (playErr.name !== 'AbortError') {
-        console.warn('[Bhashini TTS] Play notice:', playErr.message);
+        console.warn('[Bhashini TTS] Play notice, activating fallback:', playErr.message);
+        triggerFallback();
       }
     });
   };
@@ -354,6 +473,9 @@ export default function PatientKiosk({ onExitKiosk }) {
           activeAudioRef.current.currentTime = 0;
         } catch (e) {}
         activeAudioRef.current = null;
+      }
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        try { window.speechSynthesis.cancel(); } catch (e) {}
       }
     } else {
       lastSpokenKeyRef.current = '';
@@ -474,18 +596,30 @@ export default function PatientKiosk({ onExitKiosk }) {
 
   const capturePhotoAndProcessOcr = async () => {
     setIsScanning(true);
-    let fileName = `camera_scan_${Date.now()}.png`;
+    let fileName = `camera_scan_${Date.now()}.jpg`;
 
     try {
       if (videoRef.current && canvasRef.current && isCameraReady) {
         const video = videoRef.current;
         const canvas = canvasRef.current;
-        canvas.width = video.videoWidth || 1280;
-        canvas.height = video.videoHeight || 720;
+        const maxDim = 1280;
+        let w = video.videoWidth || 1280;
+        let h = video.videoHeight || 720;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+        canvas.width = w;
+        canvas.height = h;
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const base64Data = canvas.toDataURL('image/png');
-        await handleDocumentUpload(selectedDocTypeTag, '', fileName, base64Data, 'image/png');
+        ctx.drawImage(video, 0, 0, w, h);
+        const base64Data = canvas.toDataURL('image/jpeg', 0.85);
+        await handleDocumentUpload(selectedDocTypeTag, '', fileName, base64Data, 'image/jpeg');
         closeCameraScanner();
       } else {
         throw new Error('Camera preview not ready. Please try again or upload a file.');
@@ -911,12 +1045,12 @@ export default function PatientKiosk({ onExitKiosk }) {
     setDocUploadError('');
     try {
       const res = await api.uploadDocument({
-        patient_id: patientData?.id,
+        patient_id: patientData?.id || 'pat-kiosk-session',
         document_type: docType || selectedDocTypeTag || 'AUTO_DETECT',
-        file_name: fileName || 'Clinical_Document.png',
+        file_name: fileName || 'Clinical_Document.jpg',
         raw_text: customText,
         file_data: fileData,
-        mime_type: mimeType
+        mime_type: mimeType || 'image/jpeg'
       });
       if (res.success && res.document) {
         setUploadedDocs(prev => [...prev, res.document]);
@@ -929,6 +1063,54 @@ export default function PatientKiosk({ onExitKiosk }) {
     } finally {
       setIsScanning(false);
     }
+  };
+
+  // Client-side image downscaler to compress camera & gallery photos (max 1280px, ~150KB JPEG)
+  const downscaleImageFile = (file) => {
+    return new Promise((resolve, reject) => {
+      const isImage = /\.(png|jpg|jpeg|webp)$/i.test(file.name) || (file.type && file.type.startsWith('image/'));
+      if (!isImage) {
+        // PDF or text file, read directly
+        const reader = new FileReader();
+        reader.onload = (e) => resolve({ dataUrl: e.target.result, mimeType: file.type || 'application/pdf', fileName: file.name });
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 1280;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+          const outName = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
+          resolve({ dataUrl: compressedDataUrl, mimeType: 'image/jpeg', fileName: outName });
+        };
+        img.onerror = () => {
+          resolve({ dataUrl: e.target.result, mimeType: file.type || 'image/jpeg', fileName: file.name });
+        };
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   };
 
   // Remove Scanned Document & Linked Entities
@@ -956,7 +1138,7 @@ export default function PatientKiosk({ onExitKiosk }) {
   const processSelectedFile = (file) => {
     setDocUploadError('');
 
-    if (file.size > 10 * 1024 * 1024) {
+    if (file.size > 20 * 1024 * 1024) {
       setDocUploadError(t('scanner:error_oversized_file'));
       return;
     }
@@ -967,15 +1149,15 @@ export default function PatientKiosk({ onExitKiosk }) {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64Data = event.target?.result;
-      handleDocumentUpload(selectedDocTypeTag, '', file.name, base64Data, file.type || 'image/png');
-    };
-    reader.onerror = () => {
-      setDocUploadError(t('scanner:error_read_failed'));
-    };
-    reader.readAsDataURL(file);
+    setIsScanning(true);
+    downscaleImageFile(file)
+      .then(({ dataUrl, mimeType, fileName }) => {
+        handleDocumentUpload(selectedDocTypeTag, '', fileName, dataUrl, mimeType);
+      })
+      .catch((err) => {
+        setIsScanning(false);
+        setDocUploadError((t('scanner:error_read_failed') || 'File read failed') + (err?.message ? `: ${err.message}` : ''));
+      });
   };
 
   // File Selector change event
