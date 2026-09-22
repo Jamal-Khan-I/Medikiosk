@@ -213,12 +213,15 @@ export default function PatientKiosk({ onExitKiosk }) {
   const authOtpInputRef = useRef(null);
   const questionInputRef = useRef(null);
 
-  // MediaRecorder Refs for Bhashini audio stream
+  // MediaRecorder & Speech Recognition Refs for Bhashini & Live ASR
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const activeAudioRef = useRef(null);
   const lastSpokenKeyRef = useRef('');
   const speechRequestIdRef = useRef(0);
+  const speechRecognitionRef = useRef(null);
+  const accumulatedSpokenTextRef = useRef('');
+  const [liveTranscript, setLiveTranscript] = useState('');
 
   // Global Enter Key Listener for Questionnaire and Screen Progression
   useEffect(() => {
@@ -442,20 +445,35 @@ export default function PatientKiosk({ onExitKiosk }) {
       speakBrowserSpeechSynthesis(cleanText, lang);
     };
 
-    // Stream Natural Voice from Bhashini TTS
+    // Primary Voice Engine: Bhashini Indic Neural TTS API
     const ttsUrl = `${API_BASE}/voice/tts?text=${encodeURIComponent(cleanText)}&lang=${encodeURIComponent(lang)}&gender=female`;
 
     const audio = new Audio();
     audio.src = ttsUrl;
     activeAudioRef.current = audio;
 
+    let hasStartedPlayback = false;
+    const fallbackTimer = setTimeout(() => {
+      if (!hasStartedPlayback && speechRequestIdRef.current === reqId) {
+        console.warn('[Bhashini TTS] Playback latency timeout, falling back to speech synthesis for:', lang);
+        triggerFallback();
+      }
+    }, 4500);
+
+    audio.onplaying = () => {
+      hasStartedPlayback = true;
+      clearTimeout(fallbackTimer);
+    };
+
     audio.onerror = () => {
+      clearTimeout(fallbackTimer);
       console.warn('[Bhashini TTS] Audio notice, falling back to speech synthesis for:', lang);
       triggerFallback();
     };
 
     audio.play().catch(playErr => {
       if (playErr.name !== 'AbortError') {
+        clearTimeout(fallbackTimer);
         console.warn('[Bhashini TTS] Play notice, activating fallback:', playErr.message);
         triggerFallback();
       }
@@ -535,10 +553,19 @@ export default function PatientKiosk({ onExitKiosk }) {
     }
   }, [step, currentQuestionIdx, questions, selectedLang, isPlayingAudio]);
 
-  // Clear previous voice transcription text whenever navigating to another question turn
+  // Clean up active voice recording & live transcript when navigating questions or steps
   useEffect(() => {
+    if (speechRecognitionRef.current) {
+      try { speechRecognitionRef.current.stop(); } catch (e) {}
+      speechRecognitionRef.current = null;
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      try { mediaRecorderRef.current.stop(); } catch (e) {}
+    }
+    setIsListening(false);
+    setLiveTranscript('');
     setAsrStatusText('');
-  }, [currentQuestionIdx]);
+  }, [currentQuestionIdx, step]);
 
   // Hardware Camera Scanner API with Laptop Webcam Fallback
   const openCameraScanner = async (docType = 'AUTO_DETECT') => {
@@ -865,23 +892,111 @@ export default function PatientKiosk({ onExitKiosk }) {
     }
   };
 
-  // Voice Recognition Engine: Bhashini ASR Pipeline via MediaRecorder
+  // Voice Recognition Engine: Live Streaming Speech Capture with Bhashini ASR Fallback
   const toggleVoiceRecording = async () => {
     const currQ = questions[currentQuestionIdx];
     if (!currQ) return;
     const stepId = currQ.stepId;
 
-    // If currently listening, stop recorder cleanly
+    // 1. If currently listening, cleanly stop both speech recognition and media recorder
     if (isListening) {
+      if (speechRecognitionRef.current) {
+        try { speechRecognitionRef.current.stop(); } catch (e) {}
+        speechRecognitionRef.current = null;
+      }
       if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
         try { mediaRecorderRef.current.stop(); } catch (e) {}
       }
       setIsListening(false);
+      setLiveTranscript('');
+      const finalCommited = (accumulatedSpokenTextRef.current || '').trim();
+      if (finalCommited) {
+        setAsrStatusText(`✓ Voice response captured: "${finalCommited}"`);
+      }
       return;
     }
 
-    const reqStartTime = performance.now();
+    const SpeechRecognition = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition);
+    accumulatedSpokenTextRef.current = typeof answers[stepId] === 'string' ? answers[stepId] : '';
+    setLiveTranscript('');
 
+    // 2. Primary Live Speech Recognition: Real-time Word-by-Word Capture (Chrome, Edge, Safari, Android)
+    if (SpeechRecognition) {
+      try {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true; // Enables live streaming speech capture
+        recognition.maxAlternatives = 1;
+        const bcp47 = BCP47_MAP[selectedLang] || 'hi-IN';
+        recognition.lang = bcp47;
+
+        recognition.onstart = () => {
+          setIsListening(true);
+          setIsTranscribing(false);
+          setLiveTranscript('');
+          setAsrStatusText(`🎙️ Live: Speak now in ${selectedLang.toUpperCase()} (${bcp47})...`);
+        };
+
+        recognition.onresult = (event) => {
+          let interimChunk = '';
+          let finalChunk = '';
+
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            const transcriptPart = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalChunk += transcriptPart;
+            } else {
+              interimChunk += transcriptPart;
+            }
+          }
+
+          if (finalChunk) {
+            accumulatedSpokenTextRef.current = (accumulatedSpokenTextRef.current ? accumulatedSpokenTextRef.current + ' ' : '') + finalChunk.trim();
+          }
+
+          const fullLiveText = (accumulatedSpokenTextRef.current + (interimChunk ? ' ' + interimChunk.trim() : '')).trim();
+          if (fullLiveText) {
+            setLiveTranscript(fullLiveText);
+            handleAnswerChange(stepId, fullLiveText);
+            setAsrStatusText(`🎙️ "${fullLiveText}"`);
+          }
+        };
+
+        recognition.onerror = (event) => {
+          console.warn('[Live Speech Recognition Notice]:', event.error);
+          if (event.error === 'not-allowed') {
+            setAsrStatusText('⚠️ Microphone permission blocked. Please allow mic in browser settings.');
+            setIsListening(false);
+          } else if (event.error === 'no-speech') {
+            setAsrStatusText('⚡ No speech detected. Tap mic to speak again.');
+          }
+        };
+
+        recognition.onend = () => {
+          setIsListening(false);
+          speechRecognitionRef.current = null;
+          const finalCaptured = (accumulatedSpokenTextRef.current || '').trim();
+          if (finalCaptured) {
+            handleAnswerChange(stepId, finalCaptured);
+            setAsrStatusText(`✓ Spoken response captured: "${finalCaptured}"`);
+            setAsrProviderLog(prev => ({
+              ...prev,
+              [stepId]: { provider: 'live-speech-recognition', lang: bcp47, latencyMs: 0 }
+            }));
+          }
+        };
+
+        speechRecognitionRef.current = recognition;
+        recognition.start();
+        setIsListening(true);
+        return;
+      } catch (recErr) {
+        console.warn('[SpeechRecognition initialization failed, falling back to MediaRecorder + Bhashini ASR]:', recErr);
+      }
+    }
+
+    // 3. Fallback Speech Engine: MediaRecorder -> Bhashini ASR
+    const reqStartTime = performance.now();
     try {
       audioChunksRef.current = [];
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -895,7 +1010,6 @@ export default function PatientKiosk({ onExitKiosk }) {
         }
       }
 
-      // MediaRecorder audio capture for Bhashini ASR
       let recorder = null;
       if (typeof MediaRecorder !== 'undefined') {
         recorder = new MediaRecorder(stream, { mimeType });
@@ -955,12 +1069,11 @@ export default function PatientKiosk({ onExitKiosk }) {
       setIsListening(true);
       setAsrStatusText(`🎙️ Listening in ${selectedLang.toUpperCase()}... Tap mic again when finished speaking.`);
 
-      // Auto-stop safety timer (8.5 seconds)
       setTimeout(() => {
         if (recorder && recorder.state === 'recording') {
           try { recorder.stop(); } catch (e) {}
         }
-      }, 8500);
+      }, 9000);
 
     } catch (err) {
       console.warn('[Microphone Access Error]:', err);
@@ -971,7 +1084,7 @@ export default function PatientKiosk({ onExitKiosk }) {
         [stepId]: { provider: 'touch-fallback', reason: err.name || err.message }
       }));
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        setAsrStatusText('⚠️ Microphone permission blocked. Please select your answer using touch below.');
+        setAsrStatusText('⚠️ Microphone permission blocked. Please allow mic or select your answer using touch below.');
       } else {
         setAsrStatusText('🎙️ Ready. Please select your answer using touch or tap mic.');
       }
@@ -1481,6 +1594,7 @@ export default function PatientKiosk({ onExitKiosk }) {
                       onClick={() => {
                         setSelectedLang(lang.code);
                         i18n.changeLanguage(lang.code);
+                        speakText(lang.greeting, lang.code);
                         setStep('IDENTITY_QUESTION');
                       }}
                       className="card-steep kiosk-touch-target"
@@ -2270,11 +2384,11 @@ export default function PatientKiosk({ onExitKiosk }) {
 
               {/* Voice & Touch Interactive Area */}
               <div style={{ marginBottom: '24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px', backgroundColor: 'var(--fog-white)', borderRadius: '16px', marginBottom: '18px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px', backgroundColor: 'var(--fog-white)', borderRadius: '16px', marginBottom: isListening ? '12px' : '18px', flexWrap: 'wrap' }}>
                   <button
                     onClick={toggleVoiceRecording}
                     disabled={isTranscribing}
-                    className={`btn-pill ${isListening ? 'btn-pill-danger' : 'btn-pill-primary'} kiosk-touch-target`}
+                    className={`btn-pill ${isListening ? 'live-mic-active' : 'btn-pill-primary'} kiosk-touch-target`}
                     style={{ padding: '10px 22px', display: 'flex', alignItems: 'center', gap: '8px' }}
                   >
                     {isTranscribing ? (
@@ -2293,6 +2407,15 @@ export default function PatientKiosk({ onExitKiosk }) {
                     </span>
                   </button>
 
+                  {isListening && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px', height: '18px', padding: '0 4px' }}>
+                      <span className="sound-wave-bar" />
+                      <span className="sound-wave-bar" />
+                      <span className="sound-wave-bar" />
+                      <span className="sound-wave-bar" />
+                    </div>
+                  )}
+
                   <div style={{ flex: 1, fontSize: '0.84rem', color: isListening ? 'var(--alert-red-bright)' : 'var(--slate-gray)' }}>
                     {asrStatusText || (isListening ? t('intake:mic_streaming_hint') : t('intake:quick_options_hint'))}
                   </div>
@@ -2300,10 +2423,10 @@ export default function PatientKiosk({ onExitKiosk }) {
                   {/* Provider Status Badge */}
                   {asrProviderLog[questions[currentQuestionIdx]?.stepId] && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      {(asrProviderLog[questions[currentQuestionIdx]?.stepId].provider === 'gemini-neural-asr' || asrProviderLog[questions[currentQuestionIdx]?.stepId].provider === 'neural-asr') ? (
+                      {(asrProviderLog[questions[currentQuestionIdx]?.stepId].provider === 'gemini-neural-asr' || asrProviderLog[questions[currentQuestionIdx]?.stepId].provider === 'neural-asr' || asrProviderLog[questions[currentQuestionIdx]?.stepId].provider === 'live-speech-recognition') ? (
                         <span className="badge-pill badge-peach" style={{ fontSize: '0.74rem' }}>
                           <Sparkles size={12} />
-                          <span>{t('intake:voice_input_active')} ({asrProviderLog[questions[currentQuestionIdx]?.stepId].latencyMs}ms)</span>
+                          <span>Live Voice Active</span>
                         </span>
                       ) : asrProviderLog[questions[currentQuestionIdx]?.stepId].provider === 'touch-fallback' ? (
                         <span className="badge-pill badge-gray" style={{ fontSize: '0.74rem' }}>
@@ -2317,6 +2440,76 @@ export default function PatientKiosk({ onExitKiosk }) {
                     </div>
                   )}
                 </div>
+
+                {/* Real-time Streaming Voice Capture Banner */}
+                {isListening && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    padding: '14px 18px',
+                    backgroundColor: '#fff',
+                    border: '2px solid var(--alert-red-bright)',
+                    borderRadius: '14px',
+                    marginBottom: '18px',
+                    boxShadow: '0 4px 16px rgba(239, 68, 68, 0.15)',
+                    animation: 'fadeIn 0.2s ease'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '4px 10px',
+                        backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                        borderRadius: '20px',
+                        flexShrink: 0
+                      }}>
+                        <span style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          backgroundColor: 'var(--alert-red-bright)',
+                          display: 'inline-block',
+                          animation: 'pulse-red 1s infinite'
+                        }} />
+                        <span style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--alert-red-bright)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                          Live Capturing
+                        </span>
+                      </div>
+                      <div style={{
+                        fontSize: '1rem',
+                        fontWeight: 600,
+                        color: 'var(--ink-black)',
+                        fontStyle: liveTranscript ? 'normal' : 'italic',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {liveTranscript ? `"${liveTranscript}"` : 'Listening to your voice... Speak clearly now.'}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={toggleVoiceRecording}
+                      className="btn-pill"
+                      style={{
+                        padding: '6px 16px',
+                        fontSize: '0.82rem',
+                        backgroundColor: 'var(--alert-red-bright)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '20px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        flexShrink: 0
+                      }}
+                    >
+                      Done
+                    </button>
+                  </div>
+                )}
 
                 {/* Quick Touch Pills */}
                 {questions[currentQuestionIdx]?.quickOptions && (

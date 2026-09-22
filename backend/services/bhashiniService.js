@@ -123,9 +123,15 @@ class BhashiniService {
     } catch (err) {
       console.warn(`[BhashiniService] Config call failed for ${taskType}: ${err.message}. Using known model mappings.`);
       // Deterministic official model fallbacks within Bhashini ecosystem
+      const srcLang = configDetails?.language?.sourceLanguage || 'hi';
+      const isDravidian = ['ta', 'te', 'kn', 'ml'].includes(srcLang);
+      const isMisc = ['en'].includes(srcLang);
+
       const knownServiceIds = {
-        asr: 'ai4bharat/conformer-hi-gpu--t4',
-        tts: 'ai4bharat/indic-tts-coqui-indo_aryan-gpu--t4',
+        asr: isDravidian ? `ai4bharat/conformer-${srcLang}-gpu--t4` : (srcLang === 'en' ? 'ai4bharat/conformer-en-gpu--t4' : `ai4bharat/conformer-${srcLang}-gpu--t4`),
+        tts: isDravidian 
+          ? 'ai4bharat/indic-tts-coqui-dravidian-gpu--t4' 
+          : (isMisc ? 'ai4bharat/indic-tts-coqui-misc-gpu--t4' : 'ai4bharat/indic-tts-coqui-indo_aryan-gpu--t4'),
         translation: 'ai4bharat/indictrans-v2-all-gpu--t4',
         ocr: 'bhashini/iiith-ocr-sceneText-all'
       };
@@ -188,7 +194,8 @@ class BhashiniService {
         'Content-Type': 'application/json',
         'Authorization': this.getInferenceKey()
       },
-      body: JSON.stringify(computePayload)
+      body: JSON.stringify(computePayload),
+      signal: AbortSignal.timeout(8000)
     });
 
     const latencyMs = Date.now() - startTime;
@@ -255,7 +262,8 @@ class BhashiniService {
         'Content-Type': 'application/json',
         'Authorization': this.getInferenceKey()
       },
-      body: JSON.stringify(computePayload)
+      body: JSON.stringify(computePayload),
+      signal: AbortSignal.timeout(8000)
     });
 
     const latencyMs = Date.now() - startTime;
