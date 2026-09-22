@@ -3,6 +3,10 @@
 
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load .env automatically in Node.js
 if (typeof process.loadEnvFile === 'function') {
@@ -1345,6 +1349,7 @@ app.get('/api/health', (req, res) => {
 
 // Static Frontend Production Serving (if dist exists)
 const distCandidates = [
+  path.resolve(__dirname, '..', 'frontend', 'dist'),
   path.resolve(process.cwd(), 'frontend', 'dist'),
   path.resolve(process.cwd(), '..', 'frontend', 'dist'),
   path.resolve(process.cwd(), 'dist'),
