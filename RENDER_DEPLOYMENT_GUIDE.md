@@ -2,9 +2,9 @@
 
 This guide details how to deploy **MediKiosk** to [Render](https://render.com) so that **every single feature works in production**:
 - ✅ **Patient Touchscreen Kiosk** with all 22 Eighth Schedule Indian Languages + English
-- ✅ **Bhashini Voice Engine** (ASR speech recognition & TTS voice playback)
-- ✅ **Google Gemini Clinical AI** (Intelligent clinical summarization, red flag triage guardrails, entity extraction)
-- ✅ **Bhashini Document OCR** (Prescription & lab report scanning)
+- ✅ **Bhashini Voice Engine** (ASR speech recognition & TTS voice playback across Indian languages)
+- ✅ **Deterministic Clinical Engine** (SOCRATES & AYUSH Dashavidha Pariksha adaptive intake, sub-15ms red flag triage)
+- ✅ **Bhashini Document OCR** (Prescription & lab report scanning via Government OCR)
 - ✅ **Real-Time WebSockets** (Instant queue updates & Emergency Triage HUD alerts)
 - ✅ **Direct Physician Workstation** (Zero login friction, clinical editing, FHIR R4 encounter sign-off)
 - ✅ **Hospital Admin Panel & AYUSH Dashavidha Pariksha Intake**
@@ -17,6 +17,7 @@ MediKiosk is engineered as a **Unified High-Performance Node.js Service**:
 - **Single Port:** The Node.js Express server (`backend/server.js`) hosts the REST API (`/api/*`), the real-time WebSocket server (`wss://...`), and serves the compiled static Vite frontend bundle (`frontend/dist`) on the exact same port.
 - **Zero CORS / Domain Hassles:** Because both frontend and backend share the same origin URL (`https://your-service.onrender.com`), there are no cross-origin restrictions, cookie issues, or SSL certificate mismatches.
 - **Automatic WSS Upgrade:** WebSocket connections automatically switch to `wss://` under Render's managed SSL/TLS.
+- **100% Bhashini AI Stack:** Fully powered by the Government of India's Bhashini ecosystem for all speech, language, translation, and OCR tasks. No third-party foreign LLM keys are required.
 
 ---
 
@@ -24,9 +25,9 @@ MediKiosk is engineered as a **Unified High-Performance Node.js Service**:
 
 1. A **GitHub account** with access to your repository: `https://github.com/Jamal-Khan-I/Medikiosk`
 2. A **Render account** (Sign up free at [render.com](https://render.com))
-3. Your **API Keys**:
-   - **Google Gemini API Key** (`GEMINI_API_KEY`)
-   - **Bhashini Keys** (`BHASHINI_UDYAT_KEY` and `BHASHINI_INFERENCE_KEY`)
+3. Your **Bhashini API Keys**:
+   - `BHASHINI_UDYAT_KEY` (User ID, e.g. `462851d08f-a4b2-4d07-8357-7782e90d120b`)
+   - `BHASHINI_INFERENCE_KEY` (Pipeline Key, e.g. `Gwav96jUcSiFH1WZdVSRIYpH_mbhobX4SgRWsQZZHV2dUfILQM6o9WPVyle1hWQF`)
 
 ---
 
@@ -40,7 +41,6 @@ MediKiosk includes a ready-to-use [`render.yaml`](./render.yaml) blueprint in th
 3. Connect your GitHub account and select your **`Medikiosk`** repository.
 4. Render will detect the `render.yaml` file automatically and show the `medikiosk` web service.
 5. Render will prompt you to enter values for the required secret environment variables:
-   - `GEMINI_API_KEY`: Paste your Gemini API Key
    - `BHASHINI_UDYAT_KEY`: Paste your Bhashini Udyat User ID
    - `BHASHINI_INFERENCE_KEY`: Paste your Bhashini Inference API Key
 6. Click **"Apply"**.
@@ -83,8 +83,6 @@ In the **Environment Variables** section, add the following key-value pairs:
 | Variable Name | Value / Description | Example |
 |:---|:---|:---|
 | `NODE_ENV` | `production` | Enables production optimizations |
-| `GEMINI_API_KEY` | Your Google Gemini API Key | `AIzaSy...` |
-| `GEMINI_MODEL` | `gemini-2.5-flash` | Fast clinical reasoning & triage |
 | `BHASHINI_UDYAT_KEY` | Your Bhashini User ID | `462851d08f-...` |
 | `BHASHINI_INFERENCE_KEY` | Your Bhashini Pipeline Inference Key | `Gwav96j...` |
 | `JWT_SECRET` | Strong random secret string | *(Click "Generate" in Render)* |
