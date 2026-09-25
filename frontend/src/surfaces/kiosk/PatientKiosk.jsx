@@ -220,7 +220,7 @@ export default function PatientKiosk({ onExitKiosk }) {
   const lastSpokenKeyRef = useRef('');
   const speechRequestIdRef = useRef(0);
   const speechRecognitionRef = useRef(null);
-  const accumulatedSpokenTextRef = useRef('');
+  const lastSpokenTranscriptRef = useRef('');
   const [liveTranscript, setLiveTranscript] = useState('');
 
   // Global Enter Key Listener for Questionnaire and Screen Progression
@@ -892,6 +892,31 @@ export default function PatientKiosk({ onExitKiosk }) {
     }
   };
 
+// Clean up repetitive word/phrase stutters or speech recognition loop artifacts
+function cleanSpeechDuplicates(text) {
+  if (!text || typeof text !== 'string') return '';
+  const tokens = text.trim().split(/\s+/);
+  if (tokens.length <= 1) return text.trim();
+
+  // 1. Remove immediate duplicate consecutive words ("stomach stomach" -> "stomach")
+  const deduped = [];
+  for (let i = 0; i < tokens.length; i++) {
+    if (i === 0 || tokens[i].toLowerCase() !== tokens[i - 1].toLowerCase()) {
+      deduped.push(tokens[i]);
+    }
+  }
+
+  let res = deduped.join(' ');
+  // 2. Remove repeating consecutive phrases up to 5 words ("stomach pain stomach pain" -> "stomach pain")
+  for (let len = 5; len >= 1; len--) {
+    const pattern = new RegExp('(\\b(?:\\S+\\s+){' + (len - 1) + '}\\S+)\\s+\\1', 'gi');
+    while (pattern.test(res)) {
+      res = res.replace(pattern, (match, p1) => p1);
+    }
+  }
+  return res.trim();
+}
+
   // Voice Recognition Engine: Live Streaming Speech Capture with Bhashini ASR Fallback
   const toggleVoiceRecording = async () => {
     const currQ = questions[currentQuestionIdx];
@@ -909,22 +934,26 @@ export default function PatientKiosk({ onExitKiosk }) {
       }
       setIsListening(false);
       setLiveTranscript('');
-      const finalCommited = (accumulatedSpokenTextRef.current || '').trim();
+      const finalCommited = cleanSpeechDuplicates(lastSpokenTranscriptRef.current || (typeof answers[stepId] === 'string' ? answers[stepId] : ''));
       if (finalCommited) {
+        handleAnswerChange(stepId, finalCommited);
         setAsrStatusText(`✓ Voice response captured: "${finalCommited}"`);
       }
       return;
     }
 
     const SpeechRecognition = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition);
-    accumulatedSpokenTextRef.current = typeof answers[stepId] === 'string' ? answers[stepId] : '';
+    lastSpokenTranscriptRef.current = '';
     setLiveTranscript('');
 
     // 2. Primary Live Speech Recognition: Real-time Word-by-Word Capture (Chrome, Edge, Safari, Android)
     if (SpeechRecognition) {
       try {
         const recognition = new SpeechRecognition();
-        recognition.continuous = true;
+        // On mobile devices, set continuous to false so it finalizes naturally upon pause,
+        // preventing repeated loop buffers while keeping live streaming interim results active
+        const isMobileDevice = typeof window !== 'undefined' && (window.innerWidth <= 768 || /Mobi|Android|iPhone/i.test(navigator.userAgent));
+        recognition.continuous = !isMobileDevice;
         recognition.interimResults = true; // Enables live streaming speech capture
         recognition.maxAlternatives = 1;
         const bcp47 = BCP47_MAP[selectedLang] || 'hi-IN';
@@ -934,31 +963,31 @@ export default function PatientKiosk({ onExitKiosk }) {
           setIsListening(true);
           setIsTranscribing(false);
           setLiveTranscript('');
+          lastSpokenTranscriptRef.current = '';
           setAsrStatusText(`🎙️ Live: Speak now in ${selectedLang.toUpperCase()} (${bcp47})...`);
         };
 
         recognition.onresult = (event) => {
-          let interimChunk = '';
-          let finalChunk = '';
+          let finalTranscript = '';
+          let interimTranscript = '';
 
-          for (let i = event.resultIndex; i < event.results.length; ++i) {
-            const transcriptPart = event.results[i][0].transcript;
+          // event.results is the complete recognized session array: evaluate cleanly from 0 to length
+          for (let i = 0; i < event.results.length; ++i) {
+            const transcriptPart = event.results[i][0]?.transcript || '';
             if (event.results[i].isFinal) {
-              finalChunk += transcriptPart;
+              finalTranscript += transcriptPart + ' ';
             } else {
-              interimChunk += transcriptPart;
+              interimTranscript += transcriptPart;
             }
           }
 
-          if (finalChunk) {
-            accumulatedSpokenTextRef.current = (accumulatedSpokenTextRef.current ? accumulatedSpokenTextRef.current + ' ' : '') + finalChunk.trim();
-          }
-
-          const fullLiveText = (accumulatedSpokenTextRef.current + (interimChunk ? ' ' + interimChunk.trim() : '')).trim();
-          if (fullLiveText) {
-            setLiveTranscript(fullLiveText);
-            handleAnswerChange(stepId, fullLiveText);
-            setAsrStatusText(`🎙️ "${fullLiveText}"`);
+          const rawCombined = (finalTranscript + interimTranscript).trim();
+          if (rawCombined) {
+            const cleaned = cleanSpeechDuplicates(rawCombined);
+            lastSpokenTranscriptRef.current = cleaned;
+            setLiveTranscript(cleaned);
+            handleAnswerChange(stepId, cleaned);
+            setAsrStatusText(`🎙️ "${cleaned}"`);
           }
         };
 
@@ -975,7 +1004,7 @@ export default function PatientKiosk({ onExitKiosk }) {
         recognition.onend = () => {
           setIsListening(false);
           speechRecognitionRef.current = null;
-          const finalCaptured = (accumulatedSpokenTextRef.current || '').trim();
+          const finalCaptured = cleanSpeechDuplicates(lastSpokenTranscriptRef.current || liveTranscript);
           if (finalCaptured) {
             handleAnswerChange(stepId, finalCaptured);
             setAsrStatusText(`✓ Spoken response captured: "${finalCaptured}"`);
@@ -1038,7 +1067,8 @@ export default function PatientKiosk({ onExitKiosk }) {
             const result = await api.transcribeAudio(audioBlob, selectedLang, 15000);
             
             if (result && result.success && result.text && result.text.trim()) {
-              handleAnswerChange(stepId, result.text.trim());
+              const cleanedText = cleanSpeechDuplicates(result.text.trim());
+              handleAnswerChange(stepId, cleanedText);
               setAsrProviderLog(prev => ({
                 ...prev,
                 [stepId]: { 
@@ -1047,7 +1077,7 @@ export default function PatientKiosk({ onExitKiosk }) {
                   confidence: result.confidence || 0.96
                 }
               }));
-              setAsrStatusText(`⚡ Transcribed: "${result.text.trim()}"`);
+              setAsrStatusText(`⚡ Transcribed: "${cleanedText}"`);
             } else {
               setAsrStatusText('⚡ Pick from suggested options below or tap mic to try again.');
             }
