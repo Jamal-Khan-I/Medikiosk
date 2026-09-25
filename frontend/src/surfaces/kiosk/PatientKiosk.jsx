@@ -91,26 +91,47 @@ export const calculateAccurateAgeFromDob = (dobStr) => {
   return age >= 0 ? String(age) : '0';
 };
 
+const KIOSK_SESSION_STORAGE_KEY = 'medikiosk_active_session_v2';
+
+const getStoredKioskSession = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(KIOSK_SESSION_STORAGE_KEY) || localStorage.getItem(KIOSK_SESSION_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || parsed.step === 'CONFIRM' || (parsed.savedAt && Date.now() - parsed.savedAt > 3 * 60 * 60 * 1000)) {
+      sessionStorage.removeItem(KIOSK_SESSION_STORAGE_KEY);
+      localStorage.removeItem(KIOSK_SESSION_STORAGE_KEY);
+      return null;
+    }
+    return parsed;
+  } catch (e) {
+    return null;
+  }
+};
+
 export default function PatientKiosk({ onExitKiosk }) {
   const { t, i18n } = useTranslation(['common', 'identity', 'consent', 'intake', 'scanner', 'review']);
 
+  const savedSession = React.useMemo(() => getStoredKioskSession(), []);
+
   // Navigation Steps: 'LANG' | 'IDENTITY_QUESTION' | 'ABHA_ENTRY' | 'ABHA_CONFIRM' | 'NEW_PATIENT_FORM' | 'CONSENT' | 'MODE_SELECT' | 'INTAKE' | 'DOCS' | 'REVIEW' | 'CONFIRM'
-  const [step, setStep] = useState('LANG');
-  const [selectedLang, setSelectedLang] = useState('en');
+  const [step, setStep] = useState(() => savedSession?.step || 'LANG');
+  const [selectedLang, setSelectedLang] = useState(() => savedSession?.selectedLang || 'en');
   const [langSearch, setLangSearch] = useState('');
   const [langGroup, setLangGroup] = useState('ALL');
   const [isPlayingAudio, setIsPlayingAudio] = useState(true);
 
   // Queue Token Number
-  const [tokenNumber, setTokenNumber] = useState('');
+  const [tokenNumber, setTokenNumber] = useState(() => savedSession?.tokenNumber || '');
 
   // Identity State
-  const [abhaInput, setAbhaInput] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [dob, setDob] = useState('');
-  const [age, setAge] = useState('');
-  const [gender, setGender] = useState('');
-  const [mobileNumber, setMobileNumber] = useState('');
+  const [abhaInput, setAbhaInput] = useState(() => savedSession?.abhaInput || '');
+  const [fullName, setFullName] = useState(() => savedSession?.fullName || '');
+  const [dob, setDob] = useState(() => savedSession?.dob || '');
+  const [age, setAge] = useState(() => savedSession?.age || '');
+  const [gender, setGender] = useState(() => savedSession?.gender || '');
+  const [mobileNumber, setMobileNumber] = useState(() => savedSession?.mobileNumber || '');
 
   // ABHA Assisted Creation Modal State
   const [isCreatingAbha, setIsCreatingAbha] = useState(false);
@@ -124,12 +145,12 @@ export default function PatientKiosk({ onExitKiosk }) {
   const [authDemoOtp, setAuthDemoOtp] = useState('');
   const [smsStatus, setSmsStatus] = useState(null);
 
-  const [patientData, setPatientData] = useState(null);
+  const [patientData, setPatientData] = useState(() => savedSession?.patientData || null);
   const [identityError, setIdentityError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
 
   // Consent State (DPDP 2023 Statutory Gate)
-  const [consents, setConsents] = useState({
+  const [consents, setConsents] = useState(() => savedSession?.consents || {
     consent_intake: true,
     consent_ocr: true,
     consent_abdm_sync: true,
@@ -138,10 +159,10 @@ export default function PatientKiosk({ onExitKiosk }) {
   const [consentError, setConsentError] = useState('');
 
   // Intake State
-  const [intakeMode, setIntakeMode] = useState('STANDARD_SOCRATES');
-  const [questions, setQuestions] = useState([]);
-  const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
-  const [answers, setAnswers] = useState({
+  const [intakeMode, setIntakeMode] = useState(() => savedSession?.intakeMode || 'STANDARD_SOCRATES');
+  const [questions, setQuestions] = useState(() => savedSession?.questions || []);
+  const [currentQuestionIdx, setCurrentQuestionIdx] = useState(() => (typeof savedSession?.currentQuestionIdx === 'number' ? savedSession.currentQuestionIdx : 0));
+  const [answers, setAnswers] = useState(() => savedSession?.answers || {
     chief_complaint: '',
     socrates_site: '',
     socrates_onset: '',
@@ -165,8 +186,8 @@ export default function PatientKiosk({ onExitKiosk }) {
   });
 
   // Dynamic Gemini Adaptive Dialogue State
-  const [conversationHistory, setConversationHistory] = useState([]);
-  const [accumulatedFacets, setAccumulatedFacets] = useState({});
+  const [conversationHistory, setConversationHistory] = useState(() => savedSession?.conversationHistory || []);
+  const [accumulatedFacets, setAccumulatedFacets] = useState(() => savedSession?.accumulatedFacets || {});
   const [isGeneratingQuestion, setIsGeneratingQuestion] = useState(false);
 
   // ASR State: Gemini Neural ASR with Touch Fallback
@@ -180,8 +201,8 @@ export default function PatientKiosk({ onExitKiosk }) {
   const [questionValidationError, setQuestionValidationError] = useState('');
 
   // Document state & Real Hardware Camera Scanner
-  const [uploadedDocs, setUploadedDocs] = useState([]);
-  const [extractedEntitiesList, setExtractedEntitiesList] = useState([]);
+  const [uploadedDocs, setUploadedDocs] = useState(() => savedSession?.uploadedDocs || []);
+  const [extractedEntitiesList, setExtractedEntitiesList] = useState(() => savedSession?.extractedEntitiesList || []);
   const [isScanning, setIsScanning] = useState(false);
   const [docUploadError, setDocUploadError] = useState('');
   const [selectedDocTypeTag, setSelectedDocTypeTag] = useState('AUTO_DETECT');
@@ -222,6 +243,75 @@ export default function PatientKiosk({ onExitKiosk }) {
   const speechRecognitionRef = useRef(null);
   const lastSpokenTranscriptRef = useRef('');
   const [liveTranscript, setLiveTranscript] = useState('');
+
+  // Persist Kiosk Session to sessionStorage & localStorage for reload recovery
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (step === 'CONFIRM') {
+      try {
+        sessionStorage.removeItem(KIOSK_SESSION_STORAGE_KEY);
+        localStorage.removeItem(KIOSK_SESSION_STORAGE_KEY);
+      } catch (e) {}
+      return;
+    }
+    // Only persist if user has started an intake session (past 'LANG' or entered information)
+    if (step === 'LANG' && !fullName && !dob && !answers.chief_complaint) {
+      try {
+        sessionStorage.removeItem(KIOSK_SESSION_STORAGE_KEY);
+        localStorage.removeItem(KIOSK_SESSION_STORAGE_KEY);
+      } catch (e) {}
+      return;
+    }
+    try {
+      const sessionData = {
+        step,
+        selectedLang,
+        tokenNumber,
+        fullName,
+        dob,
+        age,
+        gender,
+        mobileNumber,
+        abhaInput,
+        patientData,
+        consents,
+        intakeMode,
+        questions,
+        currentQuestionIdx,
+        answers,
+        uploadedDocs,
+        extractedEntitiesList,
+        conversationHistory,
+        accumulatedFacets,
+        savedAt: Date.now()
+      };
+      const serialized = JSON.stringify(sessionData);
+      sessionStorage.setItem(KIOSK_SESSION_STORAGE_KEY, serialized);
+      localStorage.setItem(KIOSK_SESSION_STORAGE_KEY, serialized);
+    } catch (e) {
+      console.warn('[SessionStorage Notice]:', e);
+    }
+  }, [
+    step,
+    selectedLang,
+    tokenNumber,
+    fullName,
+    dob,
+    age,
+    gender,
+    mobileNumber,
+    abhaInput,
+    patientData,
+    consents,
+    intakeMode,
+    questions,
+    currentQuestionIdx,
+    answers,
+    uploadedDocs,
+    extractedEntitiesList,
+    conversationHistory,
+    accumulatedFacets
+  ]);
 
   // Global Enter Key Listener for Questionnaire and Screen Progression
   useEffect(() => {
@@ -287,14 +377,18 @@ export default function PatientKiosk({ onExitKiosk }) {
   const loadQuestions = async (complaint = '') => {
     try {
       const res = await api.getIntakeQuestions(intakeMode, complaint);
-      setQuestions(res.questions || []);
+      if (res.questions && res.questions.length > 0) {
+        setQuestions(res.questions);
+      }
     } catch (e) {
       console.error(e);
     }
   };
 
   useEffect(() => {
-    loadQuestions(answers.chief_complaint);
+    if (questions.length === 0 || answers.chief_complaint) {
+      loadQuestions(answers.chief_complaint);
+    }
   }, [intakeMode]);
 
   // BCP-47 Language Mapping for Native Web Speech API
@@ -1380,6 +1474,10 @@ function cleanSpeechDuplicates(text) {
 
   // Reset Kiosk Session
   const resetKioskSession = () => {
+    try {
+      sessionStorage.removeItem(KIOSK_SESSION_STORAGE_KEY);
+      localStorage.removeItem(KIOSK_SESSION_STORAGE_KEY);
+    } catch (e) {}
     setSelectedLang('en');
     i18n.changeLanguage('en');
     setStep('LANG');
@@ -1423,27 +1521,18 @@ function cleanSpeechDuplicates(text) {
       userSelect: 'none'
     }}>
       {/* Header */}
-      <header style={{
-        padding: '12px 20px',
-        backgroundColor: 'var(--ink-black)',
-        color: '#fff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '10px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: '200px' }}>
+      <header className="kiosk-header">
+        <div className="kiosk-header-left">
           <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--blush-peach)', color: 'var(--sienna-brown)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <HeartPulse size={18} />
           </div>
           <div>
-            <div style={{ fontWeight: 600, fontSize: '0.98rem' }}>MediKiosk OPD Terminal — KIOSK 01</div>
+            <div style={{ fontWeight: 600, fontSize: '0.96rem' }}>MediKiosk OPD Terminal</div>
             <div style={{ fontSize: '0.72rem', color: 'var(--slate-light)' }}>Ground Floor OPD Atrium — East Wing</div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        <div className="kiosk-header-right">
           {tokenNumber && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(255,255,255,0.1)', padding: '6px 12px', borderRadius: 'var(--radius-pill)', color: 'var(--blush-peach)', fontWeight: 600, fontSize: '0.82rem' }}>
               <Ticket size={15} />
@@ -1464,15 +1553,27 @@ function cleanSpeechDuplicates(text) {
               borderRadius: 'var(--radius-pill)',
               cursor: 'pointer',
               fontSize: '0.8rem',
-              minHeight: '44px'
+              minHeight: '40px'
             }}
           >
             {isPlayingAudio ? <Volume2 size={16} /> : <VolumeX size={16} />}
-            <span>{isPlayingAudio ? 'Voice Guide: ON' : 'Voice Guide: OFF'}</span>
+            <span>{isPlayingAudio ? 'Voice: ON' : 'Voice: OFF'}</span>
           </button>
 
-          <button onClick={onExitKiosk} className="btn-pill btn-pill-outline-white btn-pill-sm" style={{ minHeight: '44px' }}>
-            Exit Kiosk
+          {step !== 'LANG' && (
+            <button
+              onClick={resetKioskSession}
+              title="Start over from beginning"
+              className="btn-pill btn-pill-outline-white btn-pill-sm"
+              style={{ minHeight: '40px', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <RotateCcw size={14} />
+              <span>Start Over</span>
+            </button>
+          )}
+
+          <button onClick={onExitKiosk} className="btn-pill btn-pill-outline-white btn-pill-sm" style={{ minHeight: '40px' }}>
+            Exit
           </button>
         </div>
       </header>
@@ -1649,18 +1750,16 @@ function cleanSpeechDuplicates(text) {
                         speakText(lang.greeting, lang.code);
                         setStep('IDENTITY_QUESTION');
                       }}
-                      className="card-steep kiosk-touch-target"
+                      className="card-steep kiosk-lang-card kiosk-touch-target"
                       style={{
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        padding: '22px 16px',
                         borderColor: isSelected ? 'var(--sienna-brown)' : 'var(--border-light)',
                         backgroundColor: isSelected ? 'var(--peach-subtle)' : '#fff',
                         textAlign: 'center',
                         transition: 'all 0.15s ease',
-                        minHeight: '96px',
                         position: 'relative',
                         cursor: 'pointer'
                       }}
@@ -1671,8 +1770,8 @@ function cleanSpeechDuplicates(text) {
                         </span>
                       </div>
                       <span 
+                        className="kiosk-lang-native"
                         style={{ 
-                          fontSize: '1.45rem', 
                           fontWeight: 700, 
                           color: isSelected ? 'var(--sienna-brown)' : 'var(--ink-black)', 
                           marginBottom: '4px',
@@ -1681,10 +1780,10 @@ function cleanSpeechDuplicates(text) {
                       >
                         {lang.native}
                       </span>
-                      <span style={{ fontSize: '0.9rem', color: 'var(--slate-gray)', fontWeight: 500 }}>
+                      <span className="kiosk-lang-name" style={{ color: 'var(--slate-gray)', fontWeight: 500 }}>
                         {lang.name}
                       </span>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--sienna-brown)', marginTop: '6px', opacity: 0.88 }}>
+                      <span className="kiosk-lang-greeting" style={{ color: 'var(--sienna-brown)', marginTop: '4px', opacity: 0.88 }}>
                         {lang.greeting}
                       </span>
                     </button>
@@ -1723,15 +1822,14 @@ function cleanSpeechDuplicates(text) {
               {t('identity:screen1_subtitle')}
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '28px' }}>
               <div
                 onClick={() => {
                   setIdentityError('');
                   setStep('ABHA_ENTRY');
                 }}
-                className="card-steep kiosk-touch-target"
+                className="card-steep kiosk-content-card kiosk-touch-target"
                 style={{
-                  padding: '36px 28px',
                   textAlign: 'center',
                   cursor: 'pointer',
                   border: '2px solid var(--ink-black)',
@@ -1739,11 +1837,11 @@ function cleanSpeechDuplicates(text) {
                   transition: 'all 0.15s ease'
                 }}
               >
-                <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: 'var(--peach-subtle)', color: 'var(--sienna-brown)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto' }}>
-                  <ShieldCheck size={30} />
+                <div style={{ width: '52px', height: '52px', borderRadius: '50%', backgroundColor: 'var(--peach-subtle)', color: 'var(--sienna-brown)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px auto' }}>
+                  <ShieldCheck size={28} />
                 </div>
-                <h3 style={{ fontSize: '1.35rem', marginBottom: '8px' }}>{t('identity:yes_visited_title')}</h3>
-                <p style={{ fontSize: '0.94rem', color: 'var(--slate-gray)', lineHeight: 1.5 }}>
+                <h3 style={{ fontSize: '1.25rem', marginBottom: '8px' }}>{t('identity:yes_visited_title')}</h3>
+                <p style={{ fontSize: '0.92rem', color: 'var(--slate-gray)', lineHeight: 1.5 }}>
                   {t('identity:yes_visited_desc')}
                 </p>
               </div>
@@ -1753,9 +1851,8 @@ function cleanSpeechDuplicates(text) {
                   setIdentityError('');
                   setStep('NEW_PATIENT_FORM');
                 }}
-                className="card-steep kiosk-touch-target"
+                className="card-steep kiosk-content-card kiosk-touch-target"
                 style={{
-                  padding: '36px 28px',
                   textAlign: 'center',
                   cursor: 'pointer',
                   border: '2px solid var(--border-light)',
@@ -1763,11 +1860,11 @@ function cleanSpeechDuplicates(text) {
                   transition: 'all 0.15s ease'
                 }}
               >
-                <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: 'var(--mist-gray)', color: 'var(--ink-black)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto' }}>
-                  <User size={30} />
+                <div style={{ width: '52px', height: '52px', borderRadius: '50%', backgroundColor: 'var(--mist-gray)', color: 'var(--ink-black)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px auto' }}>
+                  <User size={28} />
                 </div>
-                <h3 style={{ fontSize: '1.35rem', marginBottom: '8px' }}>{t('identity:no_new_title')}</h3>
-                <p style={{ fontSize: '0.94rem', color: 'var(--slate-gray)', lineHeight: 1.5 }}>
+                <h3 style={{ fontSize: '1.25rem', marginBottom: '8px' }}>{t('identity:no_new_title')}</h3>
+                <p style={{ fontSize: '0.92rem', color: 'var(--slate-gray)', lineHeight: 1.5 }}>
                   {t('identity:no_new_desc')}
                 </p>
               </div>
@@ -1795,7 +1892,7 @@ function cleanSpeechDuplicates(text) {
               </p>
             </div>
 
-            <div className="card-steep" style={{ padding: '32px' }}>
+            <div className="card-steep kiosk-content-card">
               <div style={{ marginBottom: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <label style={{ fontSize: '0.88rem', fontWeight: 600 }}>
@@ -1883,7 +1980,7 @@ function cleanSpeechDuplicates(text) {
                 </div>
               )}
 
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <div className="kiosk-nav-btn-row">
                 <button
                   onClick={() => {
                     if (isAwaitingOtp) {
@@ -1894,7 +1991,6 @@ function cleanSpeechDuplicates(text) {
                     }
                   }}
                   className="btn-pill btn-pill-outline kiosk-touch-target"
-                  style={{ flex: '1 1 120px' }}
                 >
                   <ArrowLeft size={18} />
                   <span>{t('common:back')}</span>
@@ -1903,7 +1999,6 @@ function cleanSpeechDuplicates(text) {
                   onClick={isAwaitingOtp ? handleConfirmAbhaOtp : handleVerifyAbha}
                   disabled={isVerifying}
                   className="btn-pill btn-pill-primary kiosk-touch-target"
-                  style={{ flex: '2 1 200px' }}
                 >
                   <span>
                     {isVerifying
@@ -1921,12 +2016,12 @@ function cleanSpeechDuplicates(text) {
         {step === 'ABHA_CONFIRM' && patientData && (
           <div style={{ maxWidth: '640px', margin: '0 auto', textAlign: 'center' }}>
             <span className="badge-pill badge-peach" style={{ marginBottom: '12px' }}>{t('identity:abha_confirm_badge')}</span>
-            <h2 style={{ fontSize: '2.2rem', marginBottom: '8px' }}>{t('identity:abha_confirm_title')}</h2>
+            <h2 className="kiosk-question-heading" style={{ textAlign: 'center', marginBottom: '8px' }}>{t('identity:abha_confirm_title')}</h2>
             <p style={{ color: 'var(--slate-gray)', fontSize: '1.05rem', marginBottom: '28px' }}>
               {t('identity:abha_confirm_subtitle')}
             </p>
 
-            <div className="card-steep" style={{ padding: '32px', textAlign: 'left', marginBottom: '28px', backgroundColor: 'var(--peach-subtle)', borderColor: 'var(--blush-peach)' }}>
+            <div className="card-steep kiosk-content-card" style={{ textAlign: 'left', marginBottom: '24px', backgroundColor: 'var(--peach-subtle)', borderColor: 'var(--blush-peach)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px', borderBottom: '1px solid var(--border-light)', paddingBottom: '16px' }}>
                 <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--ink-black)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <UserCheck size={24} />
@@ -1937,7 +2032,7 @@ function cleanSpeechDuplicates(text) {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', fontSize: '0.92rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '14px', fontSize: '0.92rem' }}>
                 <div><strong>{t('identity:gender_label')}:</strong> {patientData.gender}</div>
                 <div><strong>{t('identity:dob_label')}:</strong> {patientData.dob || 'On File'}</div>
                 <div><strong>{t('identity:age_label')}:</strong> {patientData.age} {t('identity:years_suffix')}</div>
@@ -1946,12 +2041,12 @@ function cleanSpeechDuplicates(text) {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
-              <button onClick={() => setStep('ABHA_ENTRY')} className="btn-pill btn-pill-outline kiosk-touch-target" style={{ flex: '1 1 140px' }}>
+            <div className="kiosk-nav-btn-row">
+              <button onClick={() => setStep('ABHA_ENTRY')} className="btn-pill btn-pill-outline kiosk-touch-target">
                 <ArrowLeft size={18} />
                 <span>{t('identity:not_me_btn')}</span>
               </button>
-              <button onClick={handleConfirmAbhaIdentity} disabled={isVerifying} className="btn-pill btn-pill-primary kiosk-touch-target" style={{ flex: '2 1 200px' }}>
+              <button onClick={handleConfirmAbhaIdentity} disabled={isVerifying} className="btn-pill btn-pill-primary kiosk-touch-target">
                 <CheckCircle2 size={18} />
                 <span>{t('identity:confirm_me_btn')}</span>
               </button>
@@ -1970,7 +2065,7 @@ function cleanSpeechDuplicates(text) {
               </p>
             </div>
 
-            <div className="card-steep" style={{ padding: '32px' }}>
+            <div className="card-steep kiosk-content-card">
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.86rem', fontWeight: 600, marginBottom: '6px' }}>
@@ -2123,8 +2218,8 @@ function cleanSpeechDuplicates(text) {
                 </div>
               )}
 
-              <div style={{ display: 'flex', gap: '12px', marginTop: '24px', flexWrap: 'wrap' }}>
-                <button onClick={() => setStep('IDENTITY_QUESTION')} className="btn-pill btn-pill-outline kiosk-touch-target" style={{ flex: '1 1 120px' }}>
+              <div className="kiosk-nav-btn-row" style={{ marginTop: '24px' }}>
+                <button onClick={() => setStep('IDENTITY_QUESTION')} className="btn-pill btn-pill-outline kiosk-touch-target">
                   <ArrowLeft size={18} />
                   <span>{t('common:back')}</span>
                 </button>
@@ -2132,7 +2227,6 @@ function cleanSpeechDuplicates(text) {
                   onClick={handleProceedNewPatient}
                   disabled={isVerifying}
                   className="btn-pill btn-pill-primary kiosk-touch-target"
-                  style={{ flex: '2 1 200px' }}
                 >
                   <span>{isVerifying ? t('identity:registering_btn') : t('identity:confirm_register_btn')}</span>
                   <ArrowRight size={18} />
@@ -2225,7 +2319,7 @@ function cleanSpeechDuplicates(text) {
               </button>
             </div>
 
-            <div className="card-steep" style={{ padding: '24px', marginBottom: '24px' }}>
+            <div className="card-steep kiosk-content-card" style={{ marginBottom: '24px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <label className="consent-row">
                   <div style={{ flex: 1 }}>
@@ -2307,8 +2401,8 @@ function cleanSpeechDuplicates(text) {
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
-              <button onClick={() => setStep(patientData?.abha_number ? 'ABHA_CONFIRM' : 'NEW_PATIENT_FORM')} className="btn-pill btn-pill-outline kiosk-touch-target" style={{ flex: '1 1 140px' }}>
+            <div className="kiosk-nav-btn-row">
+              <button onClick={() => setStep(patientData?.abha_number ? 'ABHA_CONFIRM' : 'NEW_PATIENT_FORM')} className="btn-pill btn-pill-outline kiosk-touch-target">
                 <ArrowLeft size={18} />
                 <span>{t('common:back')}</span>
               </button>
@@ -2316,7 +2410,7 @@ function cleanSpeechDuplicates(text) {
                 onClick={handleProceedFromConsent}
                 disabled={!consents.consent_intake || !consents.consent_ocr}
                 className="btn-pill btn-pill-primary kiosk-touch-target"
-                style={{ flex: '2 1 200px', opacity: consents.consent_intake && consents.consent_ocr ? 1 : 0.5 }}
+                style={{ opacity: consents.consent_intake && consents.consent_ocr ? 1 : 0.5 }}
               >
                 <span>{t('consent:authorize_proceed_btn')}</span>
                 <ArrowRight size={18} />
@@ -2338,14 +2432,14 @@ function cleanSpeechDuplicates(text) {
               </p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
               <div
                 onClick={() => {
                   setIntakeMode('STANDARD_SOCRATES');
                   setStep('INTAKE');
                 }}
-                className="card-steep"
-                style={{ cursor: 'pointer', padding: '32px', borderWidth: '2px', borderColor: intakeMode === 'STANDARD_SOCRATES' ? 'var(--ink-black)' : 'var(--border-light)' }}
+                className="card-steep kiosk-content-card"
+                style={{ cursor: 'pointer', borderWidth: '2px', borderColor: intakeMode === 'STANDARD_SOCRATES' ? 'var(--ink-black)' : 'var(--border-light)' }}
               >
                 <span className="badge-pill badge-gray" style={{ marginBottom: '12px' }}>{t('intake:stream_general_badge')}</span>
                 <h3 style={{ marginBottom: '10px' }}>{t('intake:stream_general_title')}</h3>
@@ -2363,8 +2457,8 @@ function cleanSpeechDuplicates(text) {
                   setIntakeMode('AYUSH_DASHAVIDHA');
                   setStep('INTAKE');
                 }}
-                className="card-steep"
-                style={{ cursor: 'pointer', padding: '32px', borderWidth: '2px', backgroundColor: 'var(--peach-subtle)', borderColor: 'var(--blush-peach)' }}
+                className="card-steep kiosk-content-card"
+                style={{ cursor: 'pointer', borderWidth: '2px', backgroundColor: 'var(--peach-subtle)', borderColor: 'var(--blush-peach)' }}
               >
                 <span className="badge-pill badge-peach" style={{ marginBottom: '12px' }}>{t('intake:stream_ayush_badge')}</span>
                 <h3 style={{ marginBottom: '10px', color: 'var(--sienna-brown)' }}>{t('intake:stream_ayush_title')}</h3>
@@ -2410,8 +2504,8 @@ function cleanSpeechDuplicates(text) {
               </span>
             </div>
 
-            <div className="card-steep" style={{ padding: '32px', marginBottom: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '24px' }}>
+            <div className="card-steep kiosk-content-card" style={{ marginBottom: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '20px' }}>
                 <button
                   type="button"
                   onClick={() => {
@@ -2440,7 +2534,7 @@ function cleanSpeechDuplicates(text) {
                   <Volume2 size={20} />
                 </button>
                 <div style={{ flex: 1 }}>
-                  <h2 style={{ fontSize: '1.5rem', marginBottom: '6px' }}>
+                  <h2 className="kiosk-question-heading">
                     {questions[currentQuestionIdx]?.prompt[selectedLang] || questions[currentQuestionIdx]?.prompt.en}
                   </h2>
                 </div>
@@ -2448,61 +2542,65 @@ function cleanSpeechDuplicates(text) {
 
               {/* Voice & Touch Interactive Area */}
               <div style={{ marginBottom: '24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px', backgroundColor: 'var(--fog-white)', borderRadius: '16px', marginBottom: isListening ? '12px' : '18px', flexWrap: 'wrap' }}>
-                  <button
-                    onClick={toggleVoiceRecording}
-                    disabled={isTranscribing}
-                    className={`btn-pill ${isListening ? 'live-mic-active' : 'btn-pill-primary'} kiosk-touch-target`}
-                    style={{ padding: '10px 22px', display: 'flex', alignItems: 'center', gap: '8px' }}
-                  >
-                    {isTranscribing ? (
-                      <Loader2 size={18} className="animate-spin" />
-                    ) : isListening ? (
-                      <MicOff size={18} />
-                    ) : (
-                      <Mic size={18} />
-                    )}
-                    <span>
-                      {isTranscribing 
-                        ? t('intake:mic_btn_processing') 
-                        : isListening 
-                          ? t('intake:mic_btn_listening') 
-                          : t('intake:mic_btn_speak')}
-                    </span>
-                  </button>
-
-                  {isListening && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px', height: '18px', padding: '0 4px' }}>
-                      <span className="sound-wave-bar" />
-                      <span className="sound-wave-bar" />
-                      <span className="sound-wave-bar" />
-                      <span className="sound-wave-bar" />
-                    </div>
-                  )}
-
-                  <div style={{ flex: 1, fontSize: '0.84rem', color: isListening ? 'var(--alert-red-bright)' : 'var(--slate-gray)' }}>
-                    {asrStatusText || (isListening ? t('intake:mic_streaming_hint') : t('intake:quick_options_hint'))}
-                  </div>
-
-                  {/* Provider Status Badge */}
-                  {asrProviderLog[questions[currentQuestionIdx]?.stepId] && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      {(asrProviderLog[questions[currentQuestionIdx]?.stepId].provider === 'gemini-neural-asr' || asrProviderLog[questions[currentQuestionIdx]?.stepId].provider === 'neural-asr' || asrProviderLog[questions[currentQuestionIdx]?.stepId].provider === 'live-speech-recognition') ? (
-                        <span className="badge-pill badge-peach" style={{ fontSize: '0.74rem' }}>
-                          <Sparkles size={12} />
-                          <span>Live Voice Active</span>
+                <div className="kiosk-voice-box" style={{ marginBottom: isListening ? '12px' : '18px' }}>
+                  <div className="kiosk-voice-row-top">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <button
+                        onClick={toggleVoiceRecording}
+                        disabled={isTranscribing}
+                        className={`btn-pill ${isListening ? 'live-mic-active' : 'btn-pill-primary'} kiosk-touch-target`}
+                        style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                      >
+                        {isTranscribing ? (
+                          <Loader2 size={18} className="animate-spin" />
+                        ) : isListening ? (
+                          <MicOff size={18} />
+                        ) : (
+                          <Mic size={18} />
+                        )}
+                        <span>
+                          {isTranscribing 
+                            ? t('intake:mic_btn_processing') 
+                            : isListening 
+                              ? t('intake:mic_btn_listening') 
+                              : t('intake:mic_btn_speak')}
                         </span>
-                      ) : asrProviderLog[questions[currentQuestionIdx]?.stepId].provider === 'touch-fallback' ? (
-                        <span className="badge-pill badge-gray" style={{ fontSize: '0.74rem' }}>
-                          <span>{t('intake:touch_fallback_active')}</span>
-                        </span>
-                      ) : (
-                        <span className="badge-pill badge-gray" style={{ fontSize: '0.74rem' }}>
-                          <span>{t('intake:alternative_input')}</span>
-                        </span>
+                      </button>
+
+                      {isListening && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', height: '18px', padding: '0 4px' }}>
+                          <span className="sound-wave-bar" />
+                          <span className="sound-wave-bar" />
+                          <span className="sound-wave-bar" />
+                          <span className="sound-wave-bar" />
+                        </div>
                       )}
                     </div>
-                  )}
+
+                    {/* Provider Status Badge */}
+                    {asrProviderLog[questions[currentQuestionIdx]?.stepId] && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {(asrProviderLog[questions[currentQuestionIdx]?.stepId].provider === 'gemini-neural-asr' || asrProviderLog[questions[currentQuestionIdx]?.stepId].provider === 'neural-asr' || asrProviderLog[questions[currentQuestionIdx]?.stepId].provider === 'live-speech-recognition') ? (
+                          <span className="badge-pill badge-peach" style={{ fontSize: '0.78rem' }}>
+                            <Sparkles size={12} />
+                            <span>Live Voice</span>
+                          </span>
+                        ) : asrProviderLog[questions[currentQuestionIdx]?.stepId].provider === 'touch-fallback' ? (
+                          <span className="badge-pill badge-gray" style={{ fontSize: '0.78rem' }}>
+                            <span>{t('intake:touch_fallback_active')}</span>
+                          </span>
+                        ) : (
+                          <span className="badge-pill badge-gray" style={{ fontSize: '0.78rem' }}>
+                            <span>{t('intake:alternative_input')}</span>
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="kiosk-voice-row-status" style={{ color: isListening ? 'var(--alert-red-bright)' : 'var(--slate-gray)' }}>
+                    {asrStatusText || (isListening ? t('intake:mic_streaming_hint') : t('intake:quick_options_hint'))}
+                  </div>
                 </div>
 
                 {/* Real-time Streaming Voice Capture Banner */}
@@ -2577,7 +2675,7 @@ function cleanSpeechDuplicates(text) {
 
                 {/* Quick Touch Pills */}
                 {questions[currentQuestionIdx]?.quickOptions && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                  <div className="kiosk-options-wrap">
                     {questions[currentQuestionIdx].quickOptions.map((opt, i) => {
                       const currVal = answers[questions[currentQuestionIdx].stepId];
                       const isSelected = Array.isArray(currVal) ? currVal.includes(opt) : currVal === opt;
@@ -2593,13 +2691,11 @@ function cleanSpeechDuplicates(text) {
                               handleAnswerChange(questions[currentQuestionIdx].stepId, opt);
                             }
                           }}
-                          className="btn-pill kiosk-touch-target"
+                          className="btn-pill kiosk-quick-opt-pill kiosk-touch-target"
                           style={{
                             backgroundColor: isSelected ? 'var(--ink-black)' : '#fff',
                             color: isSelected ? '#fff' : 'var(--ink-black)',
-                            borderColor: isSelected ? 'var(--ink-black)' : 'var(--border-light)',
-                            fontSize: '0.9rem',
-                            padding: '10px 18px'
+                            borderColor: isSelected ? 'var(--ink-black)' : 'var(--border-light)'
                           }}
                         >
                           {getLocalizedOption(opt, selectedLang)}
@@ -2674,12 +2770,11 @@ function cleanSpeechDuplicates(text) {
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
+            <div className="kiosk-nav-btn-row">
               <button
                 type="button"
                 onClick={handlePrevQuestion}
                 className="btn-pill btn-pill-outline kiosk-touch-target"
-                style={{ flex: '1 1 140px' }}
                 title={currentQuestionIdx === 0 ? "Back to stream selection" : "Previous question"}
               >
                 <ArrowLeft size={18} />
@@ -2692,7 +2787,6 @@ function cleanSpeechDuplicates(text) {
                   disabled={!isCurrentQuestionAnswered()}
                   className="btn-pill btn-pill-primary kiosk-touch-target"
                   style={{
-                    flex: '1 1 160px',
                     opacity: isCurrentQuestionAnswered() ? 1 : 0.65,
                     cursor: isCurrentQuestionAnswered() ? 'pointer' : 'not-allowed',
                     display: 'flex',
@@ -2710,7 +2804,6 @@ function cleanSpeechDuplicates(text) {
                   disabled={!isCurrentQuestionAnswered()}
                   className="btn-pill btn-pill-peach kiosk-touch-target"
                   style={{
-                    flex: '1 1 200px',
                     opacity: isCurrentQuestionAnswered() ? 1 : 0.65,
                     cursor: isCurrentQuestionAnswered() ? 'pointer' : 'not-allowed',
                     display: 'flex',
@@ -3083,7 +3176,7 @@ function cleanSpeechDuplicates(text) {
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '14px' }}>
+            <div className="kiosk-nav-btn-row">
               <button onClick={() => setStep('INTAKE')} className="btn-pill btn-pill-outline kiosk-touch-target">
                 <ArrowLeft size={18} />
                 <span>{t('scanner:back_to_questions')}</span>
@@ -3109,7 +3202,7 @@ function cleanSpeechDuplicates(text) {
               </p>
             </div>
 
-            <div className="card-steep" style={{ padding: '32px', marginBottom: '24px' }}>
+            <div className="card-steep kiosk-content-card" style={{ marginBottom: '24px' }}>
               <div style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: '16px', marginBottom: '18px' }}>
                 <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: 'var(--slate-gray)', letterSpacing: '0.04em' }}>
                   {t('review:sec1_title')}
@@ -3152,8 +3245,8 @@ function cleanSpeechDuplicates(text) {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
-              <button onClick={() => setStep('DOCS')} className="btn-pill btn-pill-outline kiosk-touch-target" style={{ flex: '1 1 160px' }}>
+            <div className="kiosk-nav-btn-row">
+              <button onClick={() => setStep('DOCS')} className="btn-pill btn-pill-outline kiosk-touch-target">
                 <ArrowLeft size={18} />
                 <span>{t('review:make_corrections_btn')}</span>
               </button>
@@ -3161,7 +3254,6 @@ function cleanSpeechDuplicates(text) {
                 onClick={handleSubmitEncounter}
                 disabled={isSubmitting}
                 className="btn-pill btn-pill-primary kiosk-touch-target"
-                style={{ flex: '2 1 200px' }}
               >
                 <CheckCircle2 size={18} />
                 <span>{isSubmitting ? t('review:transmitting_btn') : t('review:confirm_transmit_btn')}</span>
