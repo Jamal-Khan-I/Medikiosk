@@ -52,7 +52,7 @@ export default function ForPatients({ onLaunchKiosk }) {
         </div>
 
         {/* 3 Patient Benefits */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '32px', marginBottom: '64px' }}>
+        <div className="marketing-cards-grid">
           <div className="card-steep">
             <div style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: 'var(--blush-peach)', color: 'var(--sienna-brown)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
               <Languages size={24} />

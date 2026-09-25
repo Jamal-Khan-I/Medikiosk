@@ -24,12 +24,7 @@ export default function Home({ onSelectTab, onLaunchKiosk, onLaunchPhysician }) 
   return (
     <div>
       {/* Hero Section */}
-      <section style={{
-        padding: '80px 0 64px 0',
-        backgroundColor: 'var(--paper-white)',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
+      <section className="home-hero-section">
         <div className="container-custom">
           <div style={{ maxWidth: '840px', margin: '0 auto', textAlign: 'center' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '24px' }}>
@@ -44,18 +39,11 @@ export default function Home({ onSelectTab, onLaunchKiosk, onLaunchPhysician }) 
               <span style={{ fontStyle: 'italic' }}>reimagined for modern hospitals.</span>
             </h1>
 
-            <p style={{
-              fontSize: '1.25rem',
-              color: 'var(--slate-gray)',
-              lineHeight: 1.6,
-              marginBottom: '36px',
-              maxWidth: '720px',
-              margin: '0 auto 36px auto'
-            }}>
+            <p className="home-hero-subtext">
               Patients provide their medical history by voice and touch in their native language before entering the consultation room. Doctors receive a structured, AI-drafted clinical summary with real-time red-flag triage alerts.
             </p>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            <div className="home-hero-actions">
               <button
                 onClick={onLaunchKiosk}
                 className="btn-pill btn-pill-primary btn-pill-lg"
@@ -73,32 +61,23 @@ export default function Home({ onSelectTab, onLaunchKiosk, onLaunchPhysician }) 
               </button>
             </div>
 
-            {/* Quick Metrics Bar */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-              gap: '20px',
-              marginTop: '64px',
-              padding: '24px',
-              backgroundColor: 'var(--fog-white)',
-              borderRadius: 'var(--radius-card)',
-              border: '1px solid var(--border-light)'
-            }}>
-              <div>
-                <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--ink-black)' }}>4.6 min</div>
-                <div style={{ fontSize: '0.84rem', color: 'var(--slate-gray)' }}>Average Intake Duration</div>
+            {/* Quick Metrics Bar - 4 cols on desktop, compact 2x2 grid on mobile */}
+            <div className="hero-metrics-bar">
+              <div className="hero-metric-item">
+                <div className="hero-metric-value">4.6 min</div>
+                <div className="hero-metric-label">Average Intake Duration</div>
               </div>
-              <div>
-                <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--ink-black)' }}>100%</div>
-                <div style={{ fontSize: '0.84rem', color: 'var(--slate-gray)' }}>ABDM & DPDP Act 2023 Compliant</div>
+              <div className="hero-metric-item">
+                <div className="hero-metric-value">100%</div>
+                <div className="hero-metric-label">ABDM & DPDP Act 2023 Compliant</div>
               </div>
-              <div>
-                <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--alert-red-bright)' }}>&lt; 15 ms</div>
-                <div style={{ fontSize: '0.84rem', color: 'var(--slate-gray)' }}>Red-Flag Triage Detection</div>
+              <div className="hero-metric-item">
+                <div className="hero-metric-value highlight-red">&lt; 15 ms</div>
+                <div className="hero-metric-label">Red-Flag Triage Detection</div>
               </div>
-              <div>
-                <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--ink-black)' }}>10</div>
-                <div style={{ fontSize: '0.84rem', color: 'var(--slate-gray)' }}>Languages Supported</div>
+              <div className="hero-metric-item">
+                <div className="hero-metric-value">10</div>
+                <div className="hero-metric-label">Languages Supported</div>
               </div>
             </div>
           </div>
@@ -113,7 +92,7 @@ export default function Home({ onSelectTab, onLaunchKiosk, onLaunchPhysician }) 
             <h2>Designed for vulnerable patients. Engineered for clinical precision.</h2>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '32px' }}>
+          <div className="audience-cards-grid">
             {/* For Patients Card */}
             <div className="card-steep" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
@@ -216,7 +195,7 @@ export default function Home({ onSelectTab, onLaunchKiosk, onLaunchPhysician }) 
           </div>
 
           {/* Selector Tabs */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '36px', flexWrap: 'wrap' }}>
+          <div className="feature-tabs-bar">
             <button
               onClick={() => setActiveTabFeature('socrates')}
               className={`btn-pill ${activeTabFeature === 'socrates' ? 'btn-pill-primary' : 'btn-pill-secondary'}`}
@@ -244,7 +223,7 @@ export default function Home({ onSelectTab, onLaunchKiosk, onLaunchPhysician }) 
           </div>
 
           {/* Feature Content */}
-          <div className="card-steep-fog" style={{ padding: '40px' }}>
+          <div className="card-steep-fog feature-content-card">
             {activeTabFeature === 'socrates' && (
               <div>
                 <span className="badge-pill badge-gray" style={{ marginBottom: '12px' }}>Allopathic OPD Standard</span>
@@ -252,7 +231,7 @@ export default function Home({ onSelectTab, onLaunchKiosk, onLaunchPhysician }) 
                 <p style={{ color: 'var(--slate-gray)', marginBottom: '20px', maxWidth: '720px', lineHeight: 1.6 }}>
                   MediKiosk structures the History of Present Illness (HPI) systematically through the internationally recognized SOCRATES protocol:
                 </p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', fontSize: '0.88rem' }}>
+                <div className="framework-subgrid-2col">
                   <div style={{ padding: '12px 16px', backgroundColor: '#fff', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
                     <strong>S</strong> — Site & Exact Anatomical Location
                   </div>
@@ -288,7 +267,7 @@ export default function Home({ onSelectTab, onLaunchKiosk, onLaunchPhysician }) 
                 <p style={{ color: 'var(--slate-gray)', marginBottom: '20px', maxWidth: '720px', lineHeight: 1.6 }}>
                   A dedicated clinical pathway specifically structured for Ayurvedic and integrative outpatient departments:
                 </p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', fontSize: '0.86rem' }}>
+                <div className="framework-subgrid-2col">
                   <div style={{ padding: '12px 16px', backgroundColor: '#fff', borderRadius: '12px', border: '1px solid var(--border-light)' }}>1. Prakriti (Constitution)</div>
                   <div style={{ padding: '12px 16px', backgroundColor: '#fff', borderRadius: '12px', border: '1px solid var(--border-light)' }}>2. Vikriti (Pathology/Dosha)</div>
                   <div style={{ padding: '12px 16px', backgroundColor: '#fff', borderRadius: '12px', border: '1px solid var(--border-light)' }}>3. Sara (Tissue Vitality)</div>
@@ -310,7 +289,7 @@ export default function Home({ onSelectTab, onLaunchKiosk, onLaunchPhysician }) 
                 <p style={{ color: 'var(--slate-gray)', marginBottom: '20px', maxWidth: '720px', lineHeight: 1.6 }}>
                   Patients insert or scan physical prior prescriptions and lab reports directly at the kiosk. MediKiosk parses medications, lab values, and abnormal reference flags automatically.
                 </p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
+                <div className="framework-subgrid-1col">
                   <div style={{ padding: '16px 20px', backgroundColor: '#fff', borderRadius: '14px', border: '1px solid var(--border-light)', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                     <CheckCircle2 size={18} color="var(--success-green-bright)" style={{ flexShrink: 0, marginTop: '2px' }} />
                     <span style={{ fontSize: '0.92rem' }}><strong>Prescription Parsing:</strong> Extracts drug name, dosage, frequency, and duration.</span>
@@ -334,7 +313,7 @@ export default function Home({ onSelectTab, onLaunchKiosk, onLaunchPhysician }) 
                 <p style={{ color: 'var(--slate-gray)', marginBottom: '20px', maxWidth: '720px', lineHeight: 1.6 }}>
                   Unlike traditional forms that wait for submission, MediKiosk runs a sub-15ms parallel NLP and rule evaluation on every voice utterance and touch response.
                 </p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', fontSize: '0.92rem' }}>
+                <div className="framework-subgrid-1col">
                   <div style={{ padding: '18px 20px', backgroundColor: '#fff', borderRadius: '14px', borderLeft: '4px solid var(--alert-red-bright)', border: '1px solid var(--border-light)', borderLeftWidth: '4px' }}>
                     <strong style={{ display: 'block', marginBottom: '4px', color: 'var(--ink-black)' }}>Instant Triage Broadcast:</strong>
                     <span style={{ color: 'var(--ink-soft)', lineHeight: 1.55 }}>If a patient mentions chest crushing pain radiating to the jaw, a high-priority alert triggers on the emergency triage desk and physician queue instantly with the Kiosk station ID.</span>
@@ -351,7 +330,7 @@ export default function Home({ onSelectTab, onLaunchKiosk, onLaunchPhysician }) 
       </section>
 
       {/* Call to Action Bar */}
-      <section style={{ padding: '80px 0', backgroundColor: 'var(--ink-black)', color: 'var(--paper-white)' }}>
+      <section className="home-cta-section">
         <div className="container-custom" style={{ textAlign: 'center', maxWidth: '720px' }}>
           <h2 style={{ color: 'var(--paper-white)', marginBottom: '20px' }}>
             Ready to deploy MediKiosk across your hospital OPD?

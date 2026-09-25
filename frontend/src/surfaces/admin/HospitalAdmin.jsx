@@ -648,7 +648,7 @@ export default function HospitalAdmin({ onExitAdmin }) {
               </p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+            <div className="admin-stats-grid">
               <div className="card-steep" style={{ padding: '24px' }}>
                 <div style={{ fontSize: '0.8rem', color: 'var(--slate-gray)', textTransform: 'uppercase', marginBottom: '4px' }}>Total Patients Intake</div>
                 <div style={{ fontSize: '2.2rem', fontWeight: 600, color: 'var(--ink-black)' }}>{analytics.total_patients_processed}</div>

@@ -27,7 +27,7 @@ export default function ForHospitals({ onLaunchPhysician, onSelectTab }) {
         </div>
 
         {/* 3 Core Value Pillars */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '32px', marginBottom: '64px' }}>
+        <div className="marketing-cards-grid">
           <div className="card-steep">
             <div style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: 'var(--mist-gray)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
               <Clock size={24} color="var(--ink-black)" />

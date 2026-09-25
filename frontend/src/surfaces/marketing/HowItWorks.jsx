@@ -74,7 +74,7 @@ export default function HowItWorks({ onLaunchKiosk }) {
         </div>
 
         {/* Steps Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '32px', marginBottom: '64px' }}>
+        <div className="marketing-cards-grid">
           {steps.map((step) => (
             <div key={step.num} className="card-steep" style={{ position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
