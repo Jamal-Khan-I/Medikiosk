@@ -562,11 +562,6 @@ input[type=number] {
   color: var(--ink-black);
 }
 
-.custom-select-clear-option {
-  border-bottom: 1px dashed var(--border-light);
-  margin-bottom: 4px;
-}
-
 /* Also style native select elements so any fallback select looks great */
 select.input-steep {
   appearance: none;

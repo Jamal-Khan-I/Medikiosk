@@ -141,18 +141,6 @@ const CustomSelect = forwardRef(function CustomSelect(
 
       {isOpen && (
         <div className="custom-select-dropdown" role="listbox">
-          {allowClear && value && (
-            <div
-              role="option"
-              aria-selected={!value}
-              onClick={() => handleSelect('')}
-              className="custom-select-option custom-select-clear-option"
-            >
-              <span style={{ color: 'var(--slate-gray)', fontSize: '0.86rem', fontStyle: 'italic' }}>
-                — Clear Selection (Blank) —
-              </span>
-            </div>
-          )}
           {options.map((opt) => {
             const isSelected = String(opt.value) === String(value);
             return (
