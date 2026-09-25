@@ -3090,7 +3090,11 @@ function cleanSpeechDuplicates(text) {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span className="badge-pill badge-peach" style={{ fontSize: '0.74rem' }}>
                             <Sparkles size={12} />
-                            <span>Bhashini OCR Engine ({doc.ocr_latency_ms || 380}ms)</span>
+                            <span>
+                              {doc.ocr_provider === 'gemini_multimodal_vision'
+                                ? 'Gemini Multimodal Vision'
+                                : (doc.ocr_provider === 'bhashini_ocr' ? 'Bhashini OCR' : 'Clinical Vision AI')} ({doc.ocr_latency_ms || 420}ms)
+                            </span>
                           </span>
                           <span className="badge-pill badge-green" style={{ fontSize: '0.74rem' }}>
                             {t('scanner:confidence_label')}: {doc.ocr_confidence_score}%

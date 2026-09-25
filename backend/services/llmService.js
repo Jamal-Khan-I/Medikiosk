@@ -17,8 +17,16 @@ const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models
  */
 async function callGeminiJSON(systemInstruction, userPromptOrParts, customKey = null) {
   const apiKey = customKey || process.env.GEMINI_API_KEY;
-  const primaryModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-  const candidateModels = [primaryModel, 'gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-3.7-flash', 'gemini-3.5-flash-lite', 'gemini-3.6-flash'].filter((m, i, arr) => arr.indexOf(m) === i);
+  const primaryModel = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
+  const candidateModels = [
+    primaryModel,
+    'gemini-3.1-flash-lite',
+    'gemini-3-flash-preview',
+    'gemini-flash-latest',
+    'gemini-3.7-flash',
+    'gemini-3.5-flash',
+    'gemini-3.8-flash'
+  ].filter((m, i, arr) => arr.indexOf(m) === i && !['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite'].includes(m));
 
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY is not configured in environment.');
@@ -646,5 +654,132 @@ Evaluate the clinical emergency status, analyze subtle vernacular and regional i
   }
 }
 
+// ---------------------------------------------------------------------------
+// FEATURE 7 — Multimodal Vision Document Analysis & Clinical Extraction
+// ---------------------------------------------------------------------------
+export async function analyzeDocumentWithGeminiVision({
+  buffer,
+  base64,
+  mimeType = 'image/png',
+  fileName = 'document.png',
+  customKey = null
+}) {
+  let base64Data = base64;
+  if (!base64Data && buffer) {
+    base64Data = buffer.toString('base64');
+  } else if (base64Data) {
+    base64Data = base64Data.replace(/^data:[^;]+;base64,/, '');
+  }
 
+  if (!base64Data || base64Data.length === 0) {
+    throw new Error('No document image data provided for Gemini vision analysis.');
+  }
 
+  let resolvedMime = mimeType || 'image/png';
+  if (resolvedMime.toLowerCase().includes('pdf') || fileName.toLowerCase().endsWith('.pdf')) {
+    resolvedMime = 'application/pdf';
+  } else if (resolvedMime.toLowerCase().includes('jpeg') || resolvedMime.toLowerCase().includes('jpg') || fileName.toLowerCase().match(/\.jpe?g$/i)) {
+    resolvedMime = 'image/jpeg';
+  } else if (resolvedMime.toLowerCase().includes('webp') || fileName.toLowerCase().endsWith('.webp')) {
+    resolvedMime = 'image/webp';
+  } else {
+    resolvedMime = 'image/png';
+  }
+
+  const systemInstruction = `You are an elite clinical document analyst and medical transcriptionist working in a hospital outpatient kiosk.
+You are directly analyzing an uploaded scan/photo of a medical record, doctor's prescription, laboratory test report, or hospital discharge summary.
+
+You have exceptional visual acumen for deciphering difficult, hurried, or cursive doctor handwriting, handwritten abbreviations, prescription symbols (Rx, ℞), and laboratory tables.
+
+YOUR INSTRUCTIONS:
+1. MEDICAL DOCUMENT AUTHENTICATION:
+   - Determine if this is a genuine medical document (Prescription, Lab/Diagnostic Report, Discharge Summary, Clinical Consultation Note).
+   - If this is a non-medical document (supermarket or store receipt, shopping invoice, utility bill, restaurant check, school homework, travel ticket, random flyer/photo), you MUST set "is_medical_document" to false, "document_type" to "NON_MEDICAL", and provide a polite, patient-facing "rejection_reason" explaining why it cannot be accepted.
+
+2. ACCURATE TRANSCRIPTION (INCLUDING HANDWRITING):
+   - Read and transcribe the entire visible text on the document into "extracted_text", capturing all printed headings, handwritten doctor notes, prescriptions, dosages, patient info, and clinic names as faithfully as possible.
+
+3. STRUCTURED CLINICAL EXTRACTION:
+   - "document_date": Date of document (YYYY-MM-DD or as written; null if not found).
+   - "issuing_facility": Hospital, clinic, diagnostic lab, or doctor's practice name (null if not found).
+   - "doctor_name": Attending doctor name and qualifications if visible (null if not found).
+   - "patient_name": Patient name if noted on document (null if not found).
+   - "diagnoses": Array of { "name": string, "icd10": string | null, "status": "ACTIVE" | "HISTORICAL", "is_unclear": boolean }.
+   - "medications": Array of { "name": string, "dose": string, "frequency": string, "duration": string | null, "route": string | null, "instructions": string | null, "is_unclear": boolean }.
+   - "lab_values": Array of { "test_name": string, "value": string, "unit": string, "reference_range": string | null, "is_abnormal": boolean, "abnormal_flag": "HIGH" | "LOW" | "CRITICAL HIGH" | "CRITICAL LOW" | "NORMAL", "is_unclear": boolean }.
+
+4. STRICT ILLEGIBILITY & UNCERTAINTY POLICY (ANTI-HALLUCINATION):
+   - CRITICAL: Never guess or invent medication names, numbers, or dosages.
+   - If any word, dosage, frequency, or instruction in the handwriting is genuinely illegible, smudged, cut off, or ambiguous even to you, you MUST mark that specific field as "unclear, please verify with patient", set "is_unclear" to true, and add a descriptive entry in "flagged_uncertainties".
+   - Flag uncertain reads instead of inventing content.
+
+Output strictly valid JSON with this exact schema:
+{
+  "is_medical_document": boolean,
+  "document_type": "PRESCRIPTION" | "LAB_REPORT" | "DISCHARGE_SUMMARY" | "CLINICAL_REPORT" | "NON_MEDICAL",
+  "confidence": number,
+  "rejection_reason": string | null,
+  "extracted_text": string,
+  "document_date": string | null,
+  "issuing_facility": string | null,
+  "doctor_name": string | null,
+  "patient_name": string | null,
+  "diagnoses": [
+    {
+      "name": string,
+      "icd10": string | null,
+      "status": string,
+      "is_unclear": boolean
+    }
+  ],
+  "medications": [
+    {
+      "name": string,
+      "dose": string,
+      "frequency": string,
+      "duration": string | null,
+      "route": string | null,
+      "instructions": string | null,
+      "is_unclear": boolean
+    }
+  ],
+  "lab_values": [
+    {
+      "test_name": string,
+      "value": string,
+      "unit": string,
+      "reference_range": string | null,
+      "is_abnormal": boolean,
+      "abnormal_flag": "HIGH" | "LOW" | "CRITICAL HIGH" | "CRITICAL LOW" | "NORMAL",
+      "is_unclear": boolean
+    }
+  ],
+  "flagged_uncertainties": [
+    string
+  ]
+}`;
+
+  const promptText = `Direct Document Image Analysis:
+File Name: ${fileName}
+Please inspect the image directly using your multimodal vision capabilities. Decipher all handwritten notes, verify clinical authenticity, transcribe content into extracted_text, and extract structured clinical fields in one unified step.`;
+
+  const parts = [
+    {
+      inlineData: {
+        mimeType: resolvedMime,
+        data: base64Data
+      }
+    },
+    {
+      text: promptText
+    }
+  ];
+
+  const result = await callGeminiJSON(systemInstruction, parts, customKey);
+  return {
+    provider: 'gemini_multimodal_vision',
+    model: result.model,
+    latencyMs: result.latencyMs,
+    ...result.data
+  };
+}
