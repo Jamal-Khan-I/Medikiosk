@@ -489,45 +489,40 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                 </div>
 
                 {/* Navigation Tabs */}
-                <div className="tabs-scrollable">
+                <div className="tabs-scrollable" style={{ padding: '8px 12px', marginBottom: '16px' }}>
                 <button
                   onClick={() => setActiveTab('summary')}
-                  className={`btn-pill ${activeTab === 'summary' ? 'btn-pill-primary' : 'btn-pill-secondary'}`}
-                  style={{ padding: '8px 20px', fontSize: '0.86rem' }}
+                  className={`tab-btn-pill ${activeTab === 'summary' ? 'active' : 'inactive'}`}
                 >
-                  <span>Current Clinical Summary (Ordered 1–10)</span>
+                  <span>Current Clinical Summary</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('past_visits')}
-                  className={`btn-pill ${activeTab === 'past_visits' ? 'btn-pill-primary' : 'btn-pill-secondary'}`}
-                  style={{ padding: '8px 20px', fontSize: '0.86rem' }}
+                  className={`tab-btn-pill ${activeTab === 'past_visits' ? 'active' : 'inactive'}`}
                 >
-                  <History size={15} />
-                  <span>Past Visit History ({(encounterDetails.past_visits || []).length})</span>
+                  <History size={14} />
+                  <span>Past Visits ({(encounterDetails.past_visits || []).length})</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('documents')}
-                  className={`btn-pill ${activeTab === 'documents' ? 'btn-pill-primary' : 'btn-pill-secondary'}`}
-                  style={{ padding: '8px 20px', fontSize: '0.86rem' }}
+                  className={`tab-btn-pill ${activeTab === 'documents' ? 'active' : 'inactive'}`}
                 >
-                  <span>Prior Documents & Labs ({currentDocs.length})</span>
+                  <span>Prior Docs ({currentDocs.length})</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('audit')}
-                  className={`btn-pill ${activeTab === 'audit' ? 'btn-pill-primary' : 'btn-pill-secondary'}`}
-                  style={{ padding: '8px 20px', fontSize: '0.86rem' }}
+                  className={`tab-btn-pill ${activeTab === 'audit' ? 'active' : 'inactive'}`}
                 >
-                  <History size={15} />
+                  <History size={14} />
                   <span>Audit Trail ({currentAudits.length})</span>
                 </button>
                 {generatedFhirBundle && (
                   <button
                     onClick={() => setActiveTab('fhir')}
-                    className={`btn-pill ${activeTab === 'fhir' ? 'btn-pill-peach' : 'btn-pill-secondary'}`}
-                    style={{ padding: '8px 20px', fontSize: '0.86rem' }}
+                    className={`tab-btn-pill ${activeTab === 'fhir' ? 'active' : 'inactive'}`}
                   >
-                    <FileCode2 size={15} />
-                    <span>ABDM FHIR R4 Bundle</span>
+                    <FileCode2 size={14} />
+                    <span>ABDM FHIR R4</span>
                   </button>
                 )}
               </div>

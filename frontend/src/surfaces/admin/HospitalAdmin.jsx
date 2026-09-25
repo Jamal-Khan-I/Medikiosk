@@ -159,71 +159,58 @@ export default function HospitalAdmin({ onExitAdmin }) {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--fog-white)' }}>
       {/* Admin Top Header */}
-      <header style={{
-        padding: '12px 18px',
-        backgroundColor: 'var(--paper-white)',
-        borderBottom: '1px solid var(--border-light)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '12px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: '1 1 auto' }}>
-          <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--ink-black)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Building2 size={20} />
+      <header className="admin-header">
+        <div className="admin-header-title-wrap">
+          <div className="admin-header-icon">
+            <Building2 size={18} />
           </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--ink-black)', lineHeight: 1.25 }}>
+          <div className="admin-header-text">
+            <div className="admin-header-title">
               Hospital Operations & Administrative Console
             </div>
-            <div style={{ fontSize: '0.74rem', color: 'var(--slate-gray)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div className="admin-header-subtitle">
               Apex Healthcare Systems • Multi-Kiosk Fleet ID: APX-MUM-01
             </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-          <span className="badge-pill badge-peach" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+        <div className="admin-header-actions">
+          <span className="badge-pill badge-peach admin-badge-role">
             Hospital Admin
           </span>
           <button 
             onClick={onExitAdmin} 
-            className="btn-pill btn-pill-outline btn-pill-sm"
-            style={{ whiteSpace: 'nowrap', flexShrink: 0, minWidth: 'fit-content' }}
+            className="btn-exit-admin"
           >
             Exit Admin
           </button>
         </div>
       </header>
 
-      {/* Administrative Tabs */}
-      <div className="tabs-scrollable" style={{ padding: '12px 20px', backgroundColor: '#fff', borderBottom: '1px solid var(--border-light)', marginBottom: 0 }}>
+      {/* Administrative Tabs (Sleek Segmented Tab Selection Buttons) */}
+      <div className="tabs-scrollable" style={{ backgroundColor: '#fff', borderBottom: '1px solid var(--border-light)' }}>
         <button
           onClick={() => setActiveTab('patients')}
-          className={`btn-pill ${activeTab === 'patients' ? 'btn-pill-primary' : 'btn-pill-secondary'}`}
-          style={{ padding: '8px 20px', fontSize: '0.86rem', flexShrink: 0, whiteSpace: 'nowrap' }}
+          className={`tab-btn-pill ${activeTab === 'patients' ? 'active' : 'inactive'}`}
         >
-          <Activity size={16} />
-          <span>Live Patient OPD Inflow ({adminPatients.length})</span>
+          <Activity size={14} />
+          <span>{isMobileScreen ? `OPD Inflow (${adminPatients.length})` : `Live Patient OPD Inflow (${adminPatients.length})`}</span>
         </button>
 
         <button
           onClick={() => setActiveTab('staff')}
-          className={`btn-pill ${activeTab === 'staff' ? 'btn-pill-primary' : 'btn-pill-secondary'}`}
-          style={{ padding: '8px 20px', fontSize: '0.86rem', flexShrink: 0, whiteSpace: 'nowrap' }}
+          className={`tab-btn-pill ${activeTab === 'staff' ? 'active' : 'inactive'}`}
         >
-          <Users size={16} />
-          <span>Staff & Physician Access ({staff.length})</span>
+          <Users size={14} />
+          <span>{isMobileScreen ? `Staff & Access (${staff.length})` : `Staff & Physician Access (${staff.length})`}</span>
         </button>
 
         <button
           onClick={() => setActiveTab('analytics')}
-          className={`btn-pill ${activeTab === 'analytics' ? 'btn-pill-primary' : 'btn-pill-secondary'}`}
-          style={{ padding: '8px 20px', fontSize: '0.86rem', flexShrink: 0, whiteSpace: 'nowrap' }}
+          className={`tab-btn-pill ${activeTab === 'analytics' ? 'active' : 'inactive'}`}
         >
-          <BarChart3 size={16} />
-          <span>Operational Throughput</span>
+          <BarChart3 size={14} />
+          <span>{isMobileScreen ? 'Analytics' : 'Operational Throughput'}</span>
         </button>
       </div>
 
@@ -247,36 +234,36 @@ export default function HospitalAdmin({ onExitAdmin }) {
               </button>
             </div>
 
-            {/* Summary KPI Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-              <div className="card-steep" style={{ padding: '20px' }}>
-                <div style={{ fontSize: '0.78rem', color: 'var(--slate-gray)', textTransform: 'uppercase', marginBottom: '4px' }}>Total Registered Today</div>
-                <div style={{ fontSize: '1.9rem', fontWeight: 700, color: 'var(--ink-black)' }}>{adminPatients.length}</div>
-                <div style={{ fontSize: '0.76rem', color: 'var(--success-green-bright)', marginTop: '2px' }}>Live OPD Kiosk Check-ins</div>
+            {/* Summary KPI Cards - 4 cols on desktop, compact 2x2 grid on mobile */}
+            <div className="admin-stats-grid">
+              <div className="card-steep admin-kpi-card">
+                <div className="admin-kpi-title">Total Registered</div>
+                <div className="admin-kpi-number">{adminPatients.length}</div>
+                <div className="admin-kpi-subtitle green">Live OPD Check-ins</div>
               </div>
 
-              <div className="card-steep" style={{ padding: '20px' }}>
-                <div style={{ fontSize: '0.78rem', color: 'var(--slate-gray)', textTransform: 'uppercase', marginBottom: '4px' }}>Red Flag Emergencies</div>
-                <div style={{ fontSize: '1.9rem', fontWeight: 700, color: 'var(--alert-red-bright)' }}>
+              <div className="card-steep admin-kpi-card">
+                <div className="admin-kpi-title">Red Flag Alerts</div>
+                <div className="admin-kpi-number red">
                   {adminPatients.filter(p => p.is_red_flagged).length}
                 </div>
-                <div style={{ fontSize: '0.76rem', color: 'var(--slate-gray)', marginTop: '2px' }}>Instant Clinical Triaged</div>
+                <div className="admin-kpi-subtitle">Instant Clinical Triage</div>
               </div>
 
-              <div className="card-steep" style={{ padding: '20px' }}>
-                <div style={{ fontSize: '0.78rem', color: 'var(--slate-gray)', textTransform: 'uppercase', marginBottom: '4px' }}>Prescriptions & Labs Digitized</div>
-                <div style={{ fontSize: '1.9rem', fontWeight: 700, color: 'var(--sienna-brown)' }}>
+              <div className="card-steep admin-kpi-card">
+                <div className="admin-kpi-title">Digitized Records</div>
+                <div className="admin-kpi-number sienna">
                   {adminPatients.reduce((acc, p) => acc + (p.documents_count || 0), 0)}
                 </div>
-                <div style={{ fontSize: '0.76rem', color: 'var(--slate-gray)', marginTop: '2px' }}>Multimodal Vision OCR</div>
+                <div className="admin-kpi-subtitle">Multimodal Vision OCR</div>
               </div>
 
-              <div className="card-steep" style={{ padding: '20px' }}>
-                <div style={{ fontSize: '0.78rem', color: 'var(--slate-gray)', textTransform: 'uppercase', marginBottom: '4px' }}>Awaiting Doctor Consultation</div>
-                <div style={{ fontSize: '1.9rem', fontWeight: 700, color: 'var(--ink-black)' }}>
+              <div className="card-steep admin-kpi-card">
+                <div className="admin-kpi-title">In Doctor Queue</div>
+                <div className="admin-kpi-number">
                   {adminPatients.filter(p => p.status !== 'CONFIRMED').length}
                 </div>
-                <div style={{ fontSize: '0.76rem', color: 'var(--slate-gray)', marginTop: '2px' }}>Active Outpatient Queue</div>
+                <div className="admin-kpi-subtitle">Active Waiting List</div>
               </div>
             </div>
 
@@ -492,8 +479,8 @@ export default function HospitalAdmin({ onExitAdmin }) {
                   Manage doctor credentials, clinical specialty assignments, and account active statuses.
                 </p>
               </div>
-              <button onClick={() => setShowAddStaffModal(true)} className="btn-pill btn-pill-primary">
-                <Plus size={16} />
+              <button onClick={() => setShowAddStaffModal(true)} className="btn-pill btn-pill-primary btn-pill-sm">
+                <Plus size={15} />
                 <span>Add Clinical User</span>
               </button>
             </div>

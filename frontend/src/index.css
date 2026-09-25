@@ -641,9 +641,188 @@ html, body {
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   padding-bottom: 4px;
+  align-items: center;
 }
 .tabs-scrollable::-webkit-scrollbar {
   display: none;
+}
+
+/* ==========================================================================
+   PERFECT SEGMENTED TAB SELECTION BUTTONS
+   ========================================================================== */
+.tab-btn-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 18px;
+  min-height: 38px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid transparent;
+  line-height: 1;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  outline: none;
+  user-select: none;
+}
+
+.tab-btn-pill.active {
+  background-color: var(--ink-black) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  border-color: var(--ink-black) !important;
+  box-shadow: 0 1px 3px rgba(23, 25, 28, 0.12);
+}
+
+.tab-btn-pill.inactive {
+  background-color: var(--fog-white) !important;
+  color: var(--slate-gray) !important;
+  border-color: var(--border-light) !important;
+}
+
+.tab-btn-pill.inactive:hover {
+  background-color: var(--mist-gray) !important;
+  color: var(--ink-black) !important;
+  border-color: #d1d5db !important;
+}
+
+/* Small Pill Buttons */
+.btn-pill-sm {
+  min-height: 34px !important;
+  padding: 6px 14px !important;
+  font-size: 0.82rem !important;
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  flex-shrink: 0 !important;
+}
+
+/* Admin Header & Layout Components */
+.admin-header {
+  padding: 12px 20px;
+  background-color: var(--paper-white);
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-header-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.admin-header-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--ink-black);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.admin-header-text {
+  min-width: 0;
+}
+
+.admin-header-title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--ink-black);
+  line-height: 1.25;
+}
+
+.admin-header-subtitle {
+  font-size: 0.74rem;
+  color: var(--slate-gray);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn-exit-admin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-light);
+  background-color: var(--paper-white);
+  color: var(--ink-black);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  min-width: 80px;
+  min-height: 32px;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.btn-exit-admin:hover {
+  background-color: var(--mist-gray);
+  border-color: #cbd5e1;
+}
+
+/* Admin KPI Grid & Cards */
+.admin-kpi-card {
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-kpi-title {
+  font-size: 0.76rem;
+  color: var(--slate-gray);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  letter-spacing: 0.03em;
+  font-weight: 500;
+}
+
+.admin-kpi-number {
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: var(--ink-black);
+  line-height: 1.15;
+}
+
+.admin-kpi-number.red {
+  color: var(--alert-red-bright);
+}
+
+.admin-kpi-number.sienna {
+  color: var(--sienna-brown);
+}
+
+.admin-kpi-subtitle {
+  font-size: 0.74rem;
+  color: var(--slate-gray);
+  margin-top: 2px;
+}
+
+.admin-kpi-subtitle.green {
+  color: var(--success-green-bright);
 }
 
 /* ==========================================================================
@@ -777,9 +956,15 @@ html, body {
     padding-bottom: 4px;
   }
   .surface-switcher-links button {
-    min-height: 44px;
-    padding: 10px 14px !important;
-    font-size: 0.85rem !important;
+    min-height: 30px !important;
+    padding: 4px 10px !important;
+    font-size: 0.76rem !important;
+  }
+
+  .tab-btn-pill {
+    min-height: 34px !important;
+    padding: 6px 14px !important;
+    font-size: 0.8rem !important;
   }
 
   .kiosk-header {
@@ -1094,6 +1279,78 @@ html, body {
   }
   .admin-stats-grid {
     grid-template-columns: repeat(2, 1fr) !important;
-    gap: 10px !important;
+    gap: 8px !important;
+    margin-bottom: 16px !important;
+  }
+  .admin-kpi-card {
+    padding: 10px 8px !important;
+    border-radius: 14px !important;
+  }
+  .admin-kpi-title {
+    font-size: 0.66rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  .admin-kpi-number {
+    font-size: 1.35rem !important;
+  }
+  .admin-kpi-subtitle {
+    font-size: 0.66rem !important;
+    line-height: 1.2 !important;
+  }
+
+  /* Compact Segmented Tab Selection Buttons on Mobile */
+  .tabs-scrollable {
+    padding: 6px 8px !important;
+    gap: 6px !important;
+    margin-bottom: 0 !important;
+  }
+  .tab-btn-pill {
+    min-height: 32px !important;
+    padding: 5px 11px !important;
+    font-size: 0.76rem !important;
+    border-radius: 9999px !important;
+    gap: 4px !important;
+  }
+  .tab-btn-pill svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+
+  /* Admin Header & Exit Button Protection on Mobile */
+  .admin-header {
+    padding: 8px 10px !important;
+  }
+  .admin-header-title {
+    font-size: 0.86rem !important;
+  }
+  .admin-header-subtitle {
+    font-size: 0.68rem !important;
+  }
+  .admin-badge-role {
+    display: none !important; /* Hide badge to avoid squeezing Exit button */
+  }
+  .btn-exit-admin {
+    min-height: 28px !important;
+    padding: 4px 10px !important;
+    font-size: 0.74rem !important;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    min-width: 74px !important;
+  }
+  .surface-switcher-bar {
+    padding: 6px 8px !important;
+    gap: 6px !important;
+  }
+  .surface-switcher-links button {
+    min-height: 28px !important;
+    padding: 3px 8px !important;
+    font-size: 0.72rem !important;
+  }
+  .btn-pill-sm {
+    min-height: 32px !important;
+    padding: 5px 12px !important;
+    font-size: 0.78rem !important;
   }
 }
