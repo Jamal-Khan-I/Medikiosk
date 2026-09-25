@@ -1798,9 +1798,6 @@ function cleanSpeechDuplicates(text) {
                       <span className="kiosk-lang-name" style={{ color: 'var(--slate-gray)', fontWeight: 500 }}>
                         {lang.name}
                       </span>
-                      <span className="kiosk-lang-greeting" style={{ color: 'var(--sienna-brown)', marginTop: '4px', opacity: 0.88 }}>
-                        {lang.greeting}
-                      </span>
                     </button>
                   );
                 })}
