@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
-  Languages, 
   Fingerprint, 
   ShieldCheck, 
   Mic, 
@@ -29,8 +28,7 @@ import {
   Ticket,
   Sparkles,
   Loader2,
-  Trash2,
-  Search
+  Trash2
 } from 'lucide-react';
 import { api, API_BASE } from '../../services/api';
 import { getLocalizedOption } from '../../services/optionTranslations';
@@ -134,8 +132,6 @@ export default function PatientKiosk({ onExitKiosk }) {
   // Navigation Steps: 'LANG' | 'IDENTITY_QUESTION' | 'ABHA_ENTRY' | 'ABHA_CONFIRM' | 'NEW_PATIENT_FORM' | 'CONSENT' | 'MODE_SELECT' | 'INTAKE' | 'DOCS' | 'REVIEW' | 'CONFIRM'
   const [step, setStep] = useState(() => savedSession?.step || 'LANG');
   const [selectedLang, setSelectedLang] = useState(() => savedSession?.selectedLang || 'en');
-  const [langSearch, setLangSearch] = useState('');
-  const [langGroup, setLangGroup] = useState('ALL');
   const [isPlayingAudio, setIsPlayingAudio] = useState(true);
 
   // Queue Token Number
@@ -1623,201 +1619,74 @@ function cleanSpeechDuplicates(text) {
       <main className="kiosk-main-content">
         
         {/* STEP 1: LANGUAGE SELECTION */}
-        {step === 'LANG' && (() => {
-          const filteredLanguages = SUPPORTED_LANGUAGES.filter(lang => {
-            const q = langSearch.trim().toLowerCase();
-            const matchesSearch = !q || 
-              lang.name.toLowerCase().includes(q) || 
-              lang.native.toLowerCase().includes(q) ||
-              lang.code.toLowerCase().includes(q);
-            const matchesGroup = langGroup === 'ALL' || 
-              (langGroup === 'COMMON' && lang.group === 'COMMON') ||
-              (langGroup === 'NORTH' && (lang.group === 'NORTH' || lang.code === 'hi' || lang.code === 'pa')) ||
-              (langGroup === 'SOUTH' && (lang.code === 'ta' || lang.code === 'te' || lang.code === 'kn' || lang.code === 'ml')) ||
-              (langGroup === 'EAST' && (lang.group === 'EAST' || lang.code === 'bn')) ||
-              (langGroup === 'WEST' && (lang.group === 'WEST' || lang.code === 'mr' || lang.code === 'gu'));
-            return matchesSearch && matchesGroup;
-          });
-
-          return (
-            <div>
-              <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '12px' }}>
-                  <span className="badge-pill badge-peach">
-                    Step 1 of 6
-                  </span>
-                  <span className="badge-pill badge-subtle" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <Languages size={12} /> Bhashini 22 Official Languages
-                  </span>
-                </div>
-                <h1 style={{ marginBottom: '8px', fontSize: 'clamp(1.8rem, 4vw, 2.4rem)' }}>
-                  Select Your Preferred Language
-                </h1>
-                <p style={{ color: 'var(--slate-gray)', fontSize: '1.05rem', margin: '0 auto', maxWidth: '640px' }}>
-                  Touch your native language below to begin voice-guided clinical check-in in your preferred script.
-                </p>
+        {step === 'LANG' && (
+          <div>
+            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+                <span className="badge-pill badge-peach">
+                  Step 1 of 6
+                </span>
               </div>
-
-              {/* Search Bar & Filter Controls */}
-              <div style={{ maxWidth: '680px', margin: '0 auto 24px' }}>
-                <div style={{ position: 'relative', marginBottom: '14px' }}>
-                  <Search 
-                    size={20} 
-                    style={{ 
-                      position: 'absolute', 
-                      left: '16px', 
-                      top: '50%', 
-                      transform: 'translateY(-50%)', 
-                      color: 'var(--slate-light)',
-                      pointerEvents: 'none'
-                    }} 
-                  />
-                  <input
-                    type="text"
-                    value={langSearch}
-                    onChange={(e) => setLangSearch(e.target.value)}
-                    placeholder="Search language / भाषा खोजें / மொழியைத் தேடு / ভাষাটো সন্ধান কৰক..."
-                    style={{
-                      width: '100%',
-                      padding: '14px 44px 14px 48px',
-                      fontSize: '1rem',
-                      borderRadius: 'var(--radius-pill)',
-                      border: '1.5px solid var(--border-light)',
-                      backgroundColor: '#fff',
-                      color: 'var(--ink-black)',
-                      outline: 'none',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                      transition: 'border-color 0.15s ease'
-                    }}
-                  />
-                  {langSearch && (
-                    <button
-                      onClick={() => setLangSearch('')}
-                      style={{
-                        position: 'absolute',
-                        right: '16px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: 'var(--slate-gray)',
-                        padding: '4px',
-                        fontSize: '1.1rem'
-                      }}
-                      title="Clear search"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-
-                {/* Regional Filter Pills */}
-                <div 
-                  className="tabs-scrollable" 
-                  style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '8px', 
-                    justifyContent: 'flex-start',
-                    paddingBottom: '4px' 
-                  }}
-                >
-                  {[
-                    { id: 'ALL', label: 'All 22 Languages' },
-                    { id: 'COMMON', label: 'Commonly Used' },
-                    { id: 'NORTH', label: 'North & Central' },
-                    { id: 'SOUTH', label: 'South (Dravidian)' },
-                    { id: 'EAST', label: 'East & Northeast' },
-                    { id: 'WEST', label: 'West' }
-                  ].map((cat) => (
-                    <button
-                      key={cat.id}
-                      onClick={() => setLangGroup(cat.id)}
-                      className={`badge-pill ${langGroup === cat.id ? 'badge-forest' : 'badge-subtle'}`}
-                      style={{
-                        padding: '8px 16px',
-                        fontSize: '0.82rem',
-                        cursor: 'pointer',
-                        border: 'none',
-                        minHeight: '36px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        flexShrink: 0
-                      }}
-                    >
-                      {cat.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Languages Grid */}
-              <div className="kiosk-lang-grid">
-                {filteredLanguages.map((lang) => {
-                  const isSelected = selectedLang === lang.code;
-                  return (
-                    <button
-                      key={lang.code}
-                      onClick={() => {
-                        setSelectedLang(lang.code);
-                        i18n.changeLanguage(lang.code);
-                        speakText(lang.greeting, lang.code);
-                        setStep('IDENTITY_QUESTION');
-                      }}
-                      className="card-steep kiosk-lang-card kiosk-touch-target"
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        borderColor: isSelected ? 'var(--sienna-brown)' : 'var(--border-light)',
-                        backgroundColor: isSelected ? 'var(--peach-subtle)' : '#fff',
-                        textAlign: 'center',
-                        transition: 'all 0.15s ease',
-                        position: 'relative',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <div style={{ position: 'absolute', top: '8px', right: '10px' }}>
-                        <span style={{ fontSize: '0.68rem', color: 'var(--slate-light)', fontWeight: 600, textTransform: 'uppercase' }}>
-                          {lang.code}
-                        </span>
-                      </div>
-                      <span 
-                        className="kiosk-lang-native"
-                        style={{ 
-                          fontWeight: 700, 
-                          color: isSelected ? 'var(--sienna-brown)' : 'var(--ink-black)', 
-                          marginBottom: '4px',
-                          lineHeight: 1.2
-                        }}
-                      >
-                        {lang.native}
-                      </span>
-                      <span className="kiosk-lang-name" style={{ color: 'var(--slate-gray)', fontWeight: 500 }}>
-                        {lang.name}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {filteredLanguages.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--slate-gray)' }}>
-                  <p style={{ fontSize: '1.1rem', marginBottom: '8px' }}>No languages matching "{langSearch}"</p>
-                  <button 
-                    onClick={() => { setLangSearch(''); setLangGroup('ALL'); }}
-                    className="btn btn-secondary"
-                    style={{ minHeight: '44px' }}
-                  >
-                    Clear Filter
-                  </button>
-                </div>
-              )}
+              <h1 style={{ marginBottom: '8px', fontSize: 'clamp(1.8rem, 4vw, 2.4rem)' }}>
+                Select Your Preferred Language
+              </h1>
+              <p style={{ color: 'var(--slate-gray)', fontSize: '1.05rem', margin: '0 auto', maxWidth: '640px' }}>
+                Touch your native language below to begin voice-guided clinical check-in in your preferred script.
+              </p>
             </div>
-          );
-        })()}
+
+            {/* Languages Grid */}
+            <div className="kiosk-lang-grid">
+              {SUPPORTED_LANGUAGES.map((lang) => {
+                const isSelected = selectedLang === lang.code;
+                return (
+                  <button
+                    key={lang.code}
+                    onClick={() => {
+                      setSelectedLang(lang.code);
+                      i18n.changeLanguage(lang.code);
+                      speakText(lang.greeting, lang.code);
+                      setStep('IDENTITY_QUESTION');
+                    }}
+                    className="card-steep kiosk-lang-card kiosk-touch-target"
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderColor: isSelected ? 'var(--sienna-brown)' : 'var(--border-light)',
+                      backgroundColor: isSelected ? 'var(--peach-subtle)' : '#fff',
+                      textAlign: 'center',
+                      transition: 'all 0.15s ease',
+                      position: 'relative',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{ position: 'absolute', top: '8px', right: '10px' }}>
+                      <span style={{ fontSize: '0.68rem', color: 'var(--slate-light)', fontWeight: 600, textTransform: 'uppercase' }}>
+                        {lang.code}
+                      </span>
+                    </div>
+                    <span 
+                      className="kiosk-lang-native"
+                      style={{ 
+                        fontWeight: 700, 
+                        color: isSelected ? 'var(--sienna-brown)' : 'var(--ink-black)', 
+                        marginBottom: '4px',
+                        lineHeight: 1.2
+                      }}
+                    >
+                      {lang.native}
+                    </span>
+                    <span className="kiosk-lang-name" style={{ color: 'var(--slate-gray)', fontWeight: 500 }}>
+                      {lang.name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* STEP 2: SCREEN 1 — ONE QUESTION ONLY: HAVE YOU VISITED BEFORE OR HAVE ABHA? */}
         {step === 'IDENTITY_QUESTION' && (
