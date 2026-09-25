@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CheckCircle2, Send } from 'lucide-react';
+import CustomSelect from '../../components/CustomSelect';
 
 export default function Contact() {
   const [submitted, setSubmitted] = useState(false);
@@ -82,16 +83,16 @@ export default function Contact() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.86rem', fontWeight: 600, marginBottom: '6px' }}>Target OPD Daily Volume</label>
-                <select
-                  className="input-steep"
+                <CustomSelect
                   value={formData.opdVolume}
-                  onChange={(e) => setFormData({ ...formData, opdVolume: e.target.value })}
-                >
-                  <option value="">Select Daily OPD Volume</option>
-                  <option value="100-500">100 – 500 patients/day (Polyclinic / Mid-size)</option>
-                  <option value="500-1000">500 – 1,000 patients/day (Tertiary Hospital)</option>
-                  <option value="1000+">1,000+ patients/day (Apex Medical Institute)</option>
-                </select>
+                  onChange={(val) => setFormData({ ...formData, opdVolume: val })}
+                  placeholder="Select Daily OPD Volume"
+                  options={[
+                    { value: '100-500', label: '100 – 500 patients/day (Polyclinic / Mid-size)' },
+                    { value: '500-1000', label: '500 – 1,000 patients/day (Tertiary Hospital)' },
+                    { value: '1000+', label: '1,000+ patients/day (Apex Medical Institute)' }
+                  ]}
+                />
               </div>
 
               <div>

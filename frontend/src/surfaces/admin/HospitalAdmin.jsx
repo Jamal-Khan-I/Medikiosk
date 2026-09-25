@@ -22,6 +22,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { api } from '../../services/api';
+import CustomSelect from '../../components/CustomSelect';
 
 export default function HospitalAdmin({ onExitAdmin }) {
   const [activeTab, setActiveTab] = useState('patients'); // 'patients' | 'staff' | 'analytics'
@@ -739,15 +740,15 @@ export default function HospitalAdmin({ onExitAdmin }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, marginBottom: '4px' }}>Role</label>
-                  <select
-                    className="input-steep"
+                  <CustomSelect
                     value={newStaff.role}
-                    onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
-                  >
-                    <option value="PHYSICIAN">Physician</option>
-                    <option value="TRIAGE_NURSE">Triage Nurse</option>
-                    <option value="ADMIN">Admin</option>
-                  </select>
+                    onChange={(val) => setNewStaff({ ...newStaff, role: val })}
+                    options={[
+                      { value: 'PHYSICIAN', label: 'Physician' },
+                      { value: 'TRIAGE_NURSE', label: 'Triage Nurse' },
+                      { value: 'ADMIN', label: 'Admin' }
+                    ]}
+                  />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, marginBottom: '4px' }}>NMC Registration #</label>
@@ -838,15 +839,15 @@ export default function HospitalAdmin({ onExitAdmin }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, marginBottom: '4px' }}>Role</label>
-                  <select
-                    className="input-steep"
+                  <CustomSelect
                     value={editingStaff.role || 'PHYSICIAN'}
-                    onChange={(e) => setEditingStaff({ ...editingStaff, role: e.target.value })}
-                  >
-                    <option value="PHYSICIAN">Physician</option>
-                    <option value="TRIAGE_NURSE">Triage Nurse</option>
-                    <option value="ADMIN">Admin</option>
-                  </select>
+                    onChange={(val) => setEditingStaff({ ...editingStaff, role: val })}
+                    options={[
+                      { value: 'PHYSICIAN', label: 'Physician' },
+                      { value: 'TRIAGE_NURSE', label: 'Triage Nurse' },
+                      { value: 'ADMIN', label: 'Admin' }
+                    ]}
+                  />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, marginBottom: '4px' }}>NMC Registration #</label>

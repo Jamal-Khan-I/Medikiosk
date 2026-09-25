@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { api, API_BASE } from '../../services/api';
 import { getLocalizedOption } from '../../services/optionTranslations';
+import CustomSelect from '../../components/CustomSelect';
 
 const SUPPORTED_LANGUAGES = [
   { code: 'hi', name: 'Hindi', native: 'हिन्दी', greeting: 'नमस्ते, ओपीडी में स्वागत है।', group: 'COMMON' },
@@ -2154,23 +2155,26 @@ function cleanSpeechDuplicates(text) {
                     <label style={{ display: 'block', fontSize: '0.86rem', fontWeight: 600, marginBottom: '6px' }}>
                       {t('identity:gender_label')} <span style={{ color: 'var(--alert-red-bright)' }}>*</span>
                     </label>
-                    <select
+                    <CustomSelect
                       ref={genderSelectRef}
-                      className="input-steep"
                       value={gender}
-                      onChange={(e) => setGender(e.target.value)}
+                      onChange={(val) => {
+                        setGender(val);
+                        mobileInputRef.current?.focus();
+                      }}
+                      options={[
+                        { value: 'MALE', label: t('identity:gender_male') },
+                        { value: 'FEMALE', label: t('identity:gender_female') },
+                        { value: 'OTHER', label: t('identity:gender_other') }
+                      ]}
+                      placeholder={`— ${t('identity:gender_label')} —`}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault();
                           mobileInputRef.current?.focus();
                         }
                       }}
-                    >
-                      <option value="" disabled hidden></option>
-                      <option value="MALE">{t('identity:gender_male')}</option>
-                      <option value="FEMALE">{t('identity:gender_female')}</option>
-                      <option value="OTHER">{t('identity:gender_other')}</option>
-                    </select>
+                    />
                   </div>
 
                   <div>
