@@ -1152,6 +1152,28 @@ export default function PatientKiosk({ onExitKiosk }) {
     }
   };
 
+  // Back Navigation: previous question turn or back to Mode Select from 1st question
+  const handlePrevQuestion = () => {
+    setQuestionValidationError('');
+    setAsrStatusText('');
+    if (speechRecognitionRef.current) {
+      try { speechRecognitionRef.current.stop(); } catch (e) {}
+      speechRecognitionRef.current = null;
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      try { mediaRecorderRef.current.stop(); } catch (e) {}
+    }
+    setIsListening(false);
+    setLiveTranscript('');
+
+    if (currentQuestionIdx > 0) {
+      setCurrentQuestionIdx(currentQuestionIdx - 1);
+    } else {
+      // On 1st question, allow the patient to return to OPD Stream / Mode Select
+      setStep('MODE_SELECT');
+    }
+  };
+
   // Document Upload / Optical OCR
   const handleDocumentUpload = async (docType, customText = '', fileName = '', fileData = null, mimeType = '') => {
     setIsScanning(true);
@@ -2325,6 +2347,18 @@ export default function PatientKiosk({ onExitKiosk }) {
                 </button>
               </div>
             </div>
+
+            <div style={{ marginTop: '28px', display: 'flex', justifyContent: 'flex-start' }}>
+              <button
+                type="button"
+                onClick={() => setStep('CONSENT')}
+                className="btn-pill btn-pill-outline kiosk-touch-target"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 22px' }}
+              >
+                <ArrowLeft size={18} />
+                <span>{t('common:back', 'Back')}</span>
+              </button>
+            </div>
           </div>
         )}
 
@@ -2612,13 +2646,11 @@ export default function PatientKiosk({ onExitKiosk }) {
 
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
               <button
-                disabled={currentQuestionIdx === 0}
-                onClick={() => {
-                  setQuestionValidationError('');
-                  setCurrentQuestionIdx(currentQuestionIdx - 1);
-                }}
+                type="button"
+                onClick={handlePrevQuestion}
                 className="btn-pill btn-pill-outline kiosk-touch-target"
                 style={{ flex: '1 1 140px' }}
+                title={currentQuestionIdx === 0 ? "Back to stream selection" : "Previous question"}
               >
                 <ArrowLeft size={18} />
                 <span>{t('intake:prev_btn')}</span>
