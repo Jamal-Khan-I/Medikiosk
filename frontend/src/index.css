@@ -542,6 +542,29 @@ input[type=number] {
   flex-shrink: 0;
 }
 
+.custom-select-clear-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: var(--slate-gray);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.custom-select-clear-btn:hover {
+  background-color: rgba(23, 25, 28, 0.08);
+  color: var(--ink-black);
+}
+
+.custom-select-clear-option {
+  border-bottom: 1px dashed var(--border-light);
+  margin-bottom: 4px;
+}
+
 /* Also style native select elements so any fallback select looks great */
 select.input-steep {
   appearance: none;

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { ChevronDown, Check } from 'lucide-react';
+import { ChevronDown, Check, X } from 'lucide-react';
 
 const CustomSelect = forwardRef(function CustomSelect(
   {
@@ -7,6 +7,7 @@ const CustomSelect = forwardRef(function CustomSelect(
     onChange,
     options = [],
     placeholder = 'Select option...',
+    allowClear = true,
     onKeyDown,
     className = '',
     style = {},
@@ -48,7 +49,8 @@ const CustomSelect = forwardRef(function CustomSelect(
   const handleSelect = (val) => {
     setIsOpen(false);
     triggerButtonRef.current?.focus();
-    onChange?.(val);
+    const nextVal = String(val) === String(value) ? '' : val;
+    onChange?.(nextVal);
   };
 
   const handleKeyDown = (e) => {
@@ -103,14 +105,54 @@ const CustomSelect = forwardRef(function CustomSelect(
         <span className="custom-select-label">
           {selectedOption ? selectedOption.label : placeholder}
         </span>
-        <ChevronDown
-          size={16}
-          className={`custom-select-chevron ${isOpen ? 'rotate-180' : ''}`}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+          {allowClear && value && !disabled && (
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label="Clear selection"
+              title="Clear selection (make blank)"
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange?.('');
+                setIsOpen(false);
+                triggerButtonRef.current?.focus();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onChange?.('');
+                  setIsOpen(false);
+                  triggerButtonRef.current?.focus();
+                }
+              }}
+              className="custom-select-clear-btn"
+            >
+              <X size={14} />
+            </span>
+          )}
+          <ChevronDown
+            size={16}
+            className={`custom-select-chevron ${isOpen ? 'rotate-180' : ''}`}
+          />
+        </div>
       </button>
 
       {isOpen && (
         <div className="custom-select-dropdown" role="listbox">
+          {allowClear && value && (
+            <div
+              role="option"
+              aria-selected={!value}
+              onClick={() => handleSelect('')}
+              className="custom-select-option custom-select-clear-option"
+            >
+              <span style={{ color: 'var(--slate-gray)', fontSize: '0.86rem', fontStyle: 'italic' }}>
+                — Clear Selection (Blank) —
+              </span>
+            </div>
+          )}
           {options.map((opt) => {
             const isSelected = String(opt.value) === String(value);
             return (

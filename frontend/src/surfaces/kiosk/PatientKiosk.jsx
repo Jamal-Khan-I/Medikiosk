@@ -97,12 +97,27 @@ const KIOSK_SESSION_STORAGE_KEY = 'medikiosk_active_session_v2';
 const getStoredKioskSession = () => {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = sessionStorage.getItem(KIOSK_SESSION_STORAGE_KEY) || localStorage.getItem(KIOSK_SESSION_STORAGE_KEY);
+    // Purge any sticky legacy localStorage data
+    try {
+      localStorage.removeItem(KIOSK_SESSION_STORAGE_KEY);
+      localStorage.removeItem('medikiosk_active_session');
+    } catch (e) {}
+
+    const raw = sessionStorage.getItem(KIOSK_SESSION_STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (!parsed || parsed.step === 'CONFIRM' || (parsed.savedAt && Date.now() - parsed.savedAt > 3 * 60 * 60 * 1000)) {
+
+    // If on demographic entry, language, or completed, never restore stale data across reload
+    if (
+      !parsed ||
+      parsed.step === 'CONFIRM' ||
+      parsed.step === 'NEW_PATIENT_FORM' ||
+      parsed.step === 'LANG' ||
+      parsed.step === 'IDENTITY_QUESTION' ||
+      parsed.step === 'ABHA_ENTRY' ||
+      (parsed.savedAt && Date.now() - parsed.savedAt > 30 * 60 * 1000)
+    ) {
       sessionStorage.removeItem(KIOSK_SESSION_STORAGE_KEY);
-      localStorage.removeItem(KIOSK_SESSION_STORAGE_KEY);
       return null;
     }
     return parsed;
@@ -126,13 +141,13 @@ export default function PatientKiosk({ onExitKiosk }) {
   // Queue Token Number
   const [tokenNumber, setTokenNumber] = useState(() => savedSession?.tokenNumber || '');
 
-  // Identity State
-  const [abhaInput, setAbhaInput] = useState(() => savedSession?.abhaInput || '');
-  const [fullName, setFullName] = useState(() => savedSession?.fullName || '');
-  const [dob, setDob] = useState(() => savedSession?.dob || '');
-  const [age, setAge] = useState(() => savedSession?.age || '');
-  const [gender, setGender] = useState(() => savedSession?.gender || '');
-  const [mobileNumber, setMobileNumber] = useState(() => savedSession?.mobileNumber || '');
+  // Identity State — Always starts completely clean and blank on refresh/new registration
+  const [abhaInput, setAbhaInput] = useState(() => (savedSession && ['INTAKE', 'DOCS', 'REVIEW'].includes(savedSession.step) ? savedSession.abhaInput || '' : ''));
+  const [fullName, setFullName] = useState(() => (savedSession && ['INTAKE', 'DOCS', 'REVIEW'].includes(savedSession.step) ? savedSession.fullName || '' : ''));
+  const [dob, setDob] = useState(() => (savedSession && ['INTAKE', 'DOCS', 'REVIEW'].includes(savedSession.step) ? savedSession.dob || '' : ''));
+  const [age, setAge] = useState(() => (savedSession && ['INTAKE', 'DOCS', 'REVIEW'].includes(savedSession.step) ? savedSession.age || '' : ''));
+  const [gender, setGender] = useState(() => (savedSession && ['INTAKE', 'DOCS', 'REVIEW'].includes(savedSession.step) ? savedSession.gender || '' : ''));
+  const [mobileNumber, setMobileNumber] = useState(() => (savedSession && ['INTAKE', 'DOCS', 'REVIEW'].includes(savedSession.step) ? savedSession.mobileNumber || '' : ''));
 
   // ABHA Assisted Creation Modal State
   const [isCreatingAbha, setIsCreatingAbha] = useState(false);
@@ -245,24 +260,24 @@ export default function PatientKiosk({ onExitKiosk }) {
   const lastSpokenTranscriptRef = useRef('');
   const [liveTranscript, setLiveTranscript] = useState('');
 
-  // Persist Kiosk Session to sessionStorage & localStorage for reload recovery
+  // Persist Kiosk Session ONLY for active clinical intake, NEVER in localStorage
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (step === 'CONFIRM') {
+
+    // Purge any legacy localStorage keys unconditionally
+    try {
+      localStorage.removeItem(KIOSK_SESSION_STORAGE_KEY);
+      localStorage.removeItem('medikiosk_active_session');
+    } catch (e) {}
+
+    // On completion or demographic entry screens, clear sessionStorage so reloading gives a clean slate
+    if (step === 'CONFIRM' || step === 'LANG' || step === 'NEW_PATIENT_FORM' || step === 'IDENTITY_QUESTION' || step === 'ABHA_ENTRY') {
       try {
         sessionStorage.removeItem(KIOSK_SESSION_STORAGE_KEY);
-        localStorage.removeItem(KIOSK_SESSION_STORAGE_KEY);
       } catch (e) {}
       return;
     }
-    // Only persist if user has started an intake session (past 'LANG' or entered information)
-    if (step === 'LANG' && !fullName && !dob && !answers.chief_complaint) {
-      try {
-        sessionStorage.removeItem(KIOSK_SESSION_STORAGE_KEY);
-        localStorage.removeItem(KIOSK_SESSION_STORAGE_KEY);
-      } catch (e) {}
-      return;
-    }
+
     try {
       const sessionData = {
         step,
@@ -288,7 +303,6 @@ export default function PatientKiosk({ onExitKiosk }) {
       };
       const serialized = JSON.stringify(sessionData);
       sessionStorage.setItem(KIOSK_SESSION_STORAGE_KEY, serialized);
-      localStorage.setItem(KIOSK_SESSION_STORAGE_KEY, serialized);
     } catch (e) {
       console.warn('[SessionStorage Notice]:', e);
     }
@@ -2158,9 +2172,12 @@ function cleanSpeechDuplicates(text) {
                     <CustomSelect
                       ref={genderSelectRef}
                       value={gender}
+                      allowClear={true}
                       onChange={(val) => {
                         setGender(val);
-                        mobileInputRef.current?.focus();
+                        if (val) {
+                          mobileInputRef.current?.focus();
+                        }
                       }}
                       options={[
                         { value: 'MALE', label: t('identity:gender_male') },
@@ -2226,6 +2243,23 @@ function cleanSpeechDuplicates(text) {
                 <button onClick={() => setStep('IDENTITY_QUESTION')} className="btn-pill btn-pill-outline kiosk-touch-target">
                   <ArrowLeft size={18} />
                   <span>{t('common:back')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFullName('');
+                    setDob('');
+                    setAge('');
+                    setGender('');
+                    setMobileNumber('');
+                    setIdentityError('');
+                  }}
+                  className="btn-pill btn-pill-outline kiosk-touch-target"
+                  style={{ gap: '6px' }}
+                  title="Clear all fields"
+                >
+                  <RotateCcw size={16} />
+                  <span>{t('common:clear') || 'Clear Form'}</span>
                 </button>
                 <button
                   onClick={handleProceedNewPatient}
