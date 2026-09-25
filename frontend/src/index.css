@@ -469,6 +469,8 @@ input[type=number] {
 }
 
 .custom-select-label {
+  display: inline-block;
+  min-height: 1.25em;
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;

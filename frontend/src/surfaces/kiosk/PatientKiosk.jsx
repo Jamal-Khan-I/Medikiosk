@@ -2184,7 +2184,7 @@ function cleanSpeechDuplicates(text) {
                         { value: 'FEMALE', label: t('identity:gender_female') },
                         { value: 'OTHER', label: t('identity:gender_other') }
                       ]}
-                      placeholder={`— ${t('identity:gender_label')} —`}
+                      placeholder=""
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault();
@@ -2243,23 +2243,6 @@ function cleanSpeechDuplicates(text) {
                 <button onClick={() => setStep('IDENTITY_QUESTION')} className="btn-pill btn-pill-outline kiosk-touch-target">
                   <ArrowLeft size={18} />
                   <span>{t('common:back')}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFullName('');
-                    setDob('');
-                    setAge('');
-                    setGender('');
-                    setMobileNumber('');
-                    setIdentityError('');
-                  }}
-                  className="btn-pill btn-pill-outline kiosk-touch-target"
-                  style={{ gap: '6px' }}
-                  title="Clear all fields"
-                >
-                  <RotateCcw size={16} />
-                  <span>{t('common:clear') || 'Clear Form'}</span>
                 </button>
                 <button
                   onClick={handleProceedNewPatient}

@@ -6,7 +6,7 @@ const CustomSelect = forwardRef(function CustomSelect(
     value,
     onChange,
     options = [],
-    placeholder = 'Select option...',
+    placeholder = '',
     allowClear = true,
     onKeyDown,
     className = '',
