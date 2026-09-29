@@ -483,7 +483,15 @@ export default function PatientKiosk({ onExitKiosk }) {
         if (persistentAudioRef.current) {
           persistentAudioRef.current.src = 'data:audio/wav;base64,UklGRigAAABXQVZFRm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
           persistentAudioRef.current.volume = 0.01;
-          persistentAudioRef.current.play().catch(() => {});
+          persistentAudioRef.current.play().then(() => {
+            if (persistentAudioRef.current) {
+              persistentAudioRef.current.volume = 1.0;
+            }
+          }).catch(() => {
+            if (persistentAudioRef.current) {
+              persistentAudioRef.current.volume = 1.0;
+            }
+          });
         }
 
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -494,8 +502,11 @@ export default function PatientKiosk({ onExitKiosk }) {
           }
         }
 
-        if (window.speechSynthesis && speechVoicesRef.current.length === 0) {
-          speechVoicesRef.current = window.speechSynthesis.getVoices() || [];
+        if (window.speechSynthesis) {
+          try { window.speechSynthesis.resume(); } catch (e) {}
+          if (speechVoicesRef.current.length === 0) {
+            speechVoicesRef.current = window.speechSynthesis.getVoices() || [];
+          }
         }
       } catch (e) {}
 
@@ -594,6 +605,8 @@ export default function PatientKiosk({ onExitKiosk }) {
     const ttsUrl = `${API_BASE}/voice/tts?text=${encodeURIComponent(cleanText)}&lang=${encodeURIComponent(lang)}&gender=female`;
 
     const audio = persistentAudioRef.current || new Audio();
+    audio.volume = 1.0;
+    audio.muted = false;
     audio.src = ttsUrl;
     activeAudioRef.current = audio;
 
@@ -616,13 +629,25 @@ export default function PatientKiosk({ onExitKiosk }) {
       triggerFallback();
     };
 
-    audio.play().catch(playErr => {
-      if (playErr.name !== 'AbortError') {
-        clearTimeout(fallbackTimer);
-        console.warn('[Bhashini TTS] Play notice, activating fallback:', playErr.message);
-        triggerFallback();
+    try {
+      audio.load();
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          hasStartedPlayback = true;
+          clearTimeout(fallbackTimer);
+        }).catch(playErr => {
+          if (playErr.name !== 'AbortError') {
+            clearTimeout(fallbackTimer);
+            console.warn('[Bhashini TTS] Play notice, activating fallback:', playErr.message);
+            triggerFallback();
+          }
+        });
       }
-    });
+    } catch (err) {
+      clearTimeout(fallbackTimer);
+      triggerFallback();
+    }
   };
 
   const toggleAudio = () => {
@@ -642,7 +667,9 @@ export default function PatientKiosk({ onExitKiosk }) {
       }
     } else {
       lastSpokenKeyRef.current = '';
-      if (step === 'CONSENT') {
+      if (step === 'IDENTITY_QUESTION') {
+        speakText(t('identity:screen1_question'), selectedLang);
+      } else if (step === 'CONSENT') {
         speakText(t('consent:audio_notice_text'), selectedLang);
       } else if (step === 'INTAKE') {
         const q = questions[currentQuestionIdx];
@@ -654,10 +681,9 @@ export default function PatientKiosk({ onExitKiosk }) {
     }
   };
 
-  // Automatic Voice Guide — Exclusively for Clinical Intake Questions (Module A) AND Consent Screen Explanation
+  // Automatic Voice Guide across Kiosk steps (Screen 1 identity, Consent, Clinical Intake)
   useEffect(() => {
-    // If not in Module A (INTAKE) or Consent (CONSENT), or audio is disabled, immediately silence any active speech
-    if (!isPlayingAudio || (step !== 'INTAKE' && step !== 'CONSENT')) {
+    if (!isPlayingAudio) {
       lastSpokenKeyRef.current = '';
       if (activeAudioRef.current) {
         try {
@@ -669,34 +695,29 @@ export default function PatientKiosk({ onExitKiosk }) {
       return;
     }
 
-    // Consent Screen Voice Explanation (speaks once per screen entry)
-    if (step === 'CONSENT') {
-      const consentSpokenText = t('consent:audio_notice_text');
-      const speakKey = `CONSENT_${selectedLang}_${consentSpokenText}`;
-      if (consentSpokenText && consentSpokenText.trim() && lastSpokenKeyRef.current !== speakKey) {
-        lastSpokenKeyRef.current = speakKey;
-        const voiceTimer = setTimeout(() => {
-          speakText(consentSpokenText.trim(), selectedLang);
-        }, 300);
-        return () => clearTimeout(voiceTimer);
-      }
-      return;
+    let textToNarrate = '';
+    let screenKey = '';
+
+    if (step === 'IDENTITY_QUESTION') {
+      textToNarrate = t('identity:screen1_question');
+      screenKey = `ID_Q_${selectedLang}_${textToNarrate}`;
+    } else if (step === 'CONSENT') {
+      textToNarrate = t('consent:audio_notice_text');
+      screenKey = `CONSENT_${selectedLang}_${textToNarrate}`;
+    } else if (step === 'INTAKE' && questions && questions[currentQuestionIdx]) {
+      const q = questions[currentQuestionIdx];
+      textToNarrate = q?.prompt?.[selectedLang] || q?.prompt?.en || '';
+      screenKey = `INTAKE_${currentQuestionIdx}_${selectedLang}_${textToNarrate}`;
     }
 
-    // In Module A: Automatically speak each clinical intake question ONCE per question turn
-    if (step === 'INTAKE' && questions && questions[currentQuestionIdx]) {
-      const q = questions[currentQuestionIdx];
-      const promptToSpeak = q?.prompt?.[selectedLang] || q?.prompt?.en;
-      const speakKey = `INTAKE_${currentQuestionIdx}_${selectedLang}_${promptToSpeak}`;
-      if (promptToSpeak && promptToSpeak.trim() && lastSpokenKeyRef.current !== speakKey) {
-        lastSpokenKeyRef.current = speakKey;
-        const voiceTimer = setTimeout(() => {
-          speakText(promptToSpeak.trim(), selectedLang);
-        }, 50);
-        return () => clearTimeout(voiceTimer);
-      }
+    if (textToNarrate && textToNarrate.trim() && lastSpokenKeyRef.current !== screenKey) {
+      lastSpokenKeyRef.current = screenKey;
+      const voiceTimer = setTimeout(() => {
+        speakText(textToNarrate.trim(), selectedLang);
+      }, 350);
+      return () => clearTimeout(voiceTimer);
     }
-  }, [step, currentQuestionIdx, questions, selectedLang, isPlayingAudio]);
+  }, [step, currentQuestionIdx, questions, selectedLang, isPlayingAudio, t]);
 
   // Clean up active voice recording & live transcript when navigating questions or steps
   useEffect(() => {
@@ -1745,7 +1766,28 @@ function cleanSpeechDuplicates(text) {
             <span className="badge-pill badge-peach" style={{ marginBottom: '14px' }}>
               {t('common:step_counter', { current: 2, total: 6 })}
             </span>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '10px' }}>
+              <button
+                type="button"
+                onClick={() => speakText(t('identity:screen1_question'), selectedLang)}
+                title="Listen to question"
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--blush-peach)',
+                  color: 'var(--sienna-brown)',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+                }}
+              >
+                <Volume2 size={20} />
+              </button>
               <h1 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.2rem)', margin: 0, color: 'var(--ink-black)' }}>
                 {t('identity:screen1_question')}
               </h1>
