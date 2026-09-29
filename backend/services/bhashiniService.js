@@ -10,6 +10,10 @@ const MEITY_PIPELINE_ID = '64392f96daac500b55c543cd';
 // In-memory cache for resolved pipeline serviceIds to optimize latency
 const serviceCache = new Map();
 
+// In-memory high-speed LRU cache for synthesized TTS audio buffers
+const ttsAudioCache = new Map();
+const MAX_TTS_CACHE_ENTRIES = 500;
+
 /**
  * Normalizes ISO language codes for Bhashini
  */
@@ -231,6 +235,16 @@ class BhashiniService {
     const lang = normalizeLang(languageCode);
     const cleanText = text.trim();
 
+    // Check fast in-memory cache first for sub-millisecond response
+    const cacheKey = `${lang}:${gender || 'female'}:${cleanText}`;
+    if (ttsAudioCache.has(cacheKey)) {
+      const cached = ttsAudioCache.get(cacheKey);
+      return {
+        ...cached,
+        latencyMs: 1
+      };
+    }
+
     // Step 1: Config Call to resolve TTS serviceId
     const { serviceId, callbackUrl } = await this.getPipelineConfig('tts', {
       language: { sourceLanguage: lang }
@@ -280,7 +294,7 @@ class BhashiniService {
     }
 
     const audioBuffer = Buffer.from(audioContent, 'base64');
-    return {
+    const result = {
       audioBuffer,
       audioBase64: audioContent,
       mimeType: 'audio/wav',
@@ -288,6 +302,15 @@ class BhashiniService {
       serviceId,
       latencyMs
     };
+
+    // Store in LRU cache
+    if (ttsAudioCache.size >= MAX_TTS_CACHE_ENTRIES) {
+      const oldestKey = ttsAudioCache.keys().next().value;
+      ttsAudioCache.delete(oldestKey);
+    }
+    ttsAudioCache.set(cacheKey, result);
+
+    return result;
   }
 
   /**

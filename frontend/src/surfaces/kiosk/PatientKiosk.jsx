@@ -250,6 +250,8 @@ export default function PatientKiosk({ onExitKiosk }) {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const activeAudioRef = useRef(null);
+  const persistentAudioRef = useRef(null);
+  const speechVoicesRef = useRef([]);
   const lastSpokenKeyRef = useRef('');
   const speechRequestIdRef = useRef(0);
   const speechRecognitionRef = useRef(null);
@@ -440,8 +442,16 @@ export default function PatientKiosk({ onExitKiosk }) {
       utterance.rate = 0.95;
       utterance.pitch = 1.0;
 
-      const voices = window.speechSynthesis.getVoices?.() || [];
-      const matchedVoice = voices.find(v => v.lang === bcp47 || v.lang.toLowerCase().startsWith(langCode.toLowerCase()));
+      const voices = speechVoicesRef.current.length > 0 
+        ? speechVoicesRef.current 
+        : (window.speechSynthesis.getVoices?.() || []);
+      
+      const matchedVoice = voices.find(v => v.lang === bcp47) ||
+        voices.find(v => v.lang.toLowerCase().startsWith(langCode.toLowerCase())) ||
+        voices.find(v => v.lang.includes('IN') || v.lang.includes('hi')) ||
+        voices.find(v => v.lang.startsWith('en')) ||
+        voices[0];
+
       if (matchedVoice) {
         utterance.voice = matchedVoice;
       }
@@ -451,13 +461,30 @@ export default function PatientKiosk({ onExitKiosk }) {
     }
   };
 
-  // Prime mobile browser AudioContext & audio element on first user touch gesture
+  // Prime mobile & desktop browser AudioContext, persistent Audio element & SpeechSynthesis on first user gesture
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (!persistentAudioRef.current) {
+        persistentAudioRef.current = new Audio();
+      }
+      const populateVoices = () => {
+        if (window.speechSynthesis) {
+          speechVoicesRef.current = window.speechSynthesis.getVoices() || [];
+        }
+      };
+      populateVoices();
+      if (window.speechSynthesis) {
+        window.speechSynthesis.onvoiceschanged = populateVoices;
+      }
+    }
+
     const unlockAudio = () => {
       try {
-        const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFRm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
-        silentAudio.volume = 0.01;
-        silentAudio.play().catch(() => {});
+        if (persistentAudioRef.current) {
+          persistentAudioRef.current.src = 'data:audio/wav;base64,UklGRigAAABXQVZFRm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+          persistentAudioRef.current.volume = 0.01;
+          persistentAudioRef.current.play().catch(() => {});
+        }
 
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (AudioCtx) {
@@ -466,17 +493,24 @@ export default function PatientKiosk({ onExitKiosk }) {
             ctx.resume().catch(() => {});
           }
         }
+
+        if (window.speechSynthesis && speechVoicesRef.current.length === 0) {
+          speechVoicesRef.current = window.speechSynthesis.getVoices() || [];
+        }
       } catch (e) {}
 
       window.removeEventListener('click', unlockAudio);
       window.removeEventListener('touchstart', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
     };
 
     window.addEventListener('click', unlockAudio, { once: true });
     window.addEventListener('touchstart', unlockAudio, { once: true });
+    window.addEventListener('keydown', unlockAudio, { once: true });
     return () => {
       window.removeEventListener('click', unlockAudio);
       window.removeEventListener('touchstart', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
     };
   }, []);
 
@@ -547,13 +581,19 @@ export default function PatientKiosk({ onExitKiosk }) {
     const triggerFallback = () => {
       if (fallbackTriggered || speechRequestIdRef.current !== reqId) return;
       fallbackTriggered = true;
+      try {
+        if (activeAudioRef.current) {
+          activeAudioRef.current.pause();
+          activeAudioRef.current.currentTime = 0;
+        }
+      } catch (e) {}
       speakBrowserSpeechSynthesis(cleanText, lang);
     };
 
     // Primary Voice Engine: Bhashini Indic Neural TTS API
     const ttsUrl = `${API_BASE}/voice/tts?text=${encodeURIComponent(cleanText)}&lang=${encodeURIComponent(lang)}&gender=female`;
 
-    const audio = new Audio();
+    const audio = persistentAudioRef.current || new Audio();
     audio.src = ttsUrl;
     activeAudioRef.current = audio;
 
@@ -563,7 +603,7 @@ export default function PatientKiosk({ onExitKiosk }) {
         console.warn('[Bhashini TTS] Playback latency timeout, falling back to speech synthesis for:', lang);
         triggerFallback();
       }
-    }, 4500);
+    }, 12000);
 
     audio.onplaying = () => {
       hasStartedPlayback = true;
@@ -1022,7 +1062,106 @@ function cleanSpeechDuplicates(text) {
   return res.trim();
 }
 
-  // Voice Recognition Engine: Live Streaming Speech Capture with Bhashini ASR Fallback
+  // Voice Recognition Engine: Live Streaming Speech Capture with Bhashini + Multimodal ASR Fallback
+  const startFallbackAudioRecorder = async (stepId) => {
+    const reqStartTime = performance.now();
+    try {
+      audioChunksRef.current = [];
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      let mimeType = 'audio/webm';
+      if (typeof MediaRecorder !== 'undefined') {
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          mimeType = 'audio/webm;codecs=opus';
+        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mimeType = 'audio/mp4';
+        } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+          mimeType = 'audio/ogg';
+        }
+      }
+
+      let recorder = null;
+      if (typeof MediaRecorder !== 'undefined') {
+        recorder = new MediaRecorder(stream, { mimeType });
+        mediaRecorderRef.current = recorder;
+
+        recorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) {
+            audioChunksRef.current.push(e.data);
+          }
+        };
+
+        recorder.onstop = async () => {
+          stream.getTracks().forEach(track => track.stop());
+          setIsListening(false);
+
+          const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+          if (audioBlob.size < 100) {
+            setAsrStatusText('⚡ Pick from suggested options below or tap mic to try again.');
+            return;
+          }
+
+          setIsTranscribing(true);
+          setAsrStatusText(`⚡ Transcribing with Indic ASR (${selectedLang.toUpperCase()})...`);
+
+          try {
+            const result = await api.transcribeAudio(audioBlob, selectedLang, 15000);
+            
+            if (result && result.success && result.text && result.text.trim()) {
+              const cleanedText = cleanSpeechDuplicates(result.text.trim());
+              handleAnswerChange(stepId, cleanedText);
+              setAsrProviderLog(prev => ({
+                ...prev,
+                [stepId]: { 
+                  provider: result.provider || 'indic_asr', 
+                  latencyMs: result.latency_ms || Math.round(performance.now() - reqStartTime),
+                  confidence: result.confidence || 0.98
+                }
+              }));
+              setAsrStatusText(`✓ Spoken response captured: "${cleanedText}"`);
+            } else {
+              setAsrStatusText('⚡ Pick from suggested options below or tap mic to try again.');
+            }
+          } catch (err) {
+            console.warn('[Indic ASR Notice]:', err.message);
+            setAsrProviderLog(prev => ({
+              ...prev,
+              [stepId]: { provider: 'indic_asr_fallback', error: err.message }
+            }));
+            setAsrStatusText('⚡ Select your answer below or tap mic to try again.');
+          } finally {
+            setIsTranscribing(false);
+          }
+        };
+
+        recorder.start(250);
+      }
+
+      setIsListening(true);
+      setAsrStatusText(`🎙️ Listening in ${selectedLang.toUpperCase()}... Tap mic again when finished speaking.`);
+
+      setTimeout(() => {
+        if (recorder && recorder.state === 'recording') {
+          try { recorder.stop(); } catch (e) {}
+        }
+      }, 10000);
+
+    } catch (err) {
+      console.warn('[Microphone Access Error]:', err);
+      setIsListening(false);
+      setIsTranscribing(false);
+      setAsrProviderLog(prev => ({
+        ...prev,
+        [stepId]: { provider: 'touch-fallback', reason: err.name || err.message }
+      }));
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setAsrStatusText('⚠️ Microphone permission blocked. Please allow mic or select your answer using touch below.');
+      } else {
+        setAsrStatusText('🎙️ Ready. Please select your answer using touch or tap mic.');
+      }
+    }
+  };
+
   const toggleVoiceRecording = async () => {
     const currQ = questions[currentQuestionIdx];
     if (!currQ) return;
@@ -1103,6 +1242,11 @@ function cleanSpeechDuplicates(text) {
             setIsListening(false);
           } else if (event.error === 'no-speech') {
             setAsrStatusText('⚡ No speech detected. Tap mic to speak again.');
+          } else {
+            console.warn('[Speech Recognition Failover] Activating MediaRecorder ASR due to:', event.error);
+            try { recognition.stop(); } catch (e) {}
+            speechRecognitionRef.current = null;
+            startFallbackAudioRecorder(stepId);
           }
         };
 
@@ -1125,105 +1269,12 @@ function cleanSpeechDuplicates(text) {
         setIsListening(true);
         return;
       } catch (recErr) {
-        console.warn('[SpeechRecognition initialization failed, falling back to MediaRecorder + Bhashini ASR]:', recErr);
+        console.warn('[SpeechRecognition initialization failed, falling back to MediaRecorder + Indic ASR]:', recErr);
       }
     }
 
-    // 3. Fallback Speech Engine: MediaRecorder -> Bhashini ASR
-    const reqStartTime = performance.now();
-    try {
-      audioChunksRef.current = [];
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
-      let mimeType = 'audio/webm';
-      if (typeof MediaRecorder !== 'undefined') {
-        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-          mimeType = 'audio/webm;codecs=opus';
-        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-          mimeType = 'audio/mp4';
-        }
-      }
-
-      let recorder = null;
-      if (typeof MediaRecorder !== 'undefined') {
-        recorder = new MediaRecorder(stream, { mimeType });
-        mediaRecorderRef.current = recorder;
-
-        recorder.ondataavailable = (e) => {
-          if (e.data && e.data.size > 0) {
-            audioChunksRef.current.push(e.data);
-          }
-        };
-
-        recorder.onstop = async () => {
-          stream.getTracks().forEach(track => track.stop());
-          setIsListening(false);
-
-          const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-          if (audioBlob.size < 100) {
-            setAsrStatusText('⚡ Pick from suggested options below or tap mic to try again.');
-            return;
-          }
-
-          setIsTranscribing(true);
-          setAsrStatusText(`⚡ Transcribing with Bhashini ASR (${selectedLang.toUpperCase()})...`);
-
-          try {
-            const result = await api.transcribeAudio(audioBlob, selectedLang, 15000);
-            
-            if (result && result.success && result.text && result.text.trim()) {
-              const cleanedText = cleanSpeechDuplicates(result.text.trim());
-              handleAnswerChange(stepId, cleanedText);
-              setAsrProviderLog(prev => ({
-                ...prev,
-                [stepId]: { 
-                  provider: 'bhashini_asr', 
-                  latencyMs: result.latency_ms || Math.round(performance.now() - reqStartTime),
-                  confidence: result.confidence || 0.96
-                }
-              }));
-              setAsrStatusText(`⚡ Transcribed: "${cleanedText}"`);
-            } else {
-              setAsrStatusText('⚡ Pick from suggested options below or tap mic to try again.');
-            }
-          } catch (err) {
-            console.warn('[Bhashini ASR Notice]:', err.message);
-            setAsrProviderLog(prev => ({
-              ...prev,
-              [stepId]: { provider: 'bhashini_asr', error: err.message }
-            }));
-            setAsrStatusText('⚡ Select your answer below or tap mic to try again.');
-          } finally {
-            setIsTranscribing(false);
-          }
-        };
-
-        recorder.start(250);
-      }
-
-      setIsListening(true);
-      setAsrStatusText(`🎙️ Listening in ${selectedLang.toUpperCase()}... Tap mic again when finished speaking.`);
-
-      setTimeout(() => {
-        if (recorder && recorder.state === 'recording') {
-          try { recorder.stop(); } catch (e) {}
-        }
-      }, 9000);
-
-    } catch (err) {
-      console.warn('[Microphone Access Error]:', err);
-      setIsListening(false);
-      setIsTranscribing(false);
-      setAsrProviderLog(prev => ({
-        ...prev,
-        [stepId]: { provider: 'touch-fallback', reason: err.name || err.message }
-      }));
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        setAsrStatusText('⚠️ Microphone permission blocked. Please allow mic or select your answer using touch below.');
-      } else {
-        setAsrStatusText('🎙️ Ready. Please select your answer using touch or tap mic.');
-      }
-    }
+    // 3. Fallback Speech Engine: MediaRecorder -> Indic / Multimodal ASR
+    await startFallbackAudioRecorder(stepId);
   };
 
   // Update Answer & Check Parallel Triage

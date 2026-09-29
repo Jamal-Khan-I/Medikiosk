@@ -783,3 +783,92 @@ Please inspect the image directly using your multimodal vision capabilities. Dec
     ...result.data
   };
 }
+
+/**
+ * Robust Multimodal Audio Speech-to-Text Transcription via Google Gemini
+ * Accurately decodes WebM, MP4, WAV, OGG, and raw PCM across 22+ Indian Languages
+ */
+export async function transcribeAudio(audioPayload, languageCode = 'hi') {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY is not configured in environment.');
+  }
+
+  let cleanBase64 = String(audioPayload).replace(/^data:[^;]+;base64,/, '').trim();
+  if (!cleanBase64) {
+    throw new Error('Empty audio payload provided for transcription.');
+  }
+
+  // Detect or resolve audio mime type
+  let mimeType = 'audio/wav';
+  if (cleanBase64.startsWith('GkXf') || String(audioPayload).includes('audio/webm')) {
+    mimeType = 'audio/webm';
+  } else if (String(audioPayload).includes('audio/mp4') || String(audioPayload).includes('video/mp4')) {
+    mimeType = 'audio/mp4';
+  } else if (String(audioPayload).includes('audio/ogg')) {
+    mimeType = 'audio/ogg';
+  }
+
+  const promptText = `You are a clinical speech recognition assistant in an Indian hospital outpatient kiosk.
+A patient has spoken their symptom or complaint in ${languageCode.toUpperCase()} (or English / Hinglish / code-mixed Indian language).
+Listen to the audio and transcribe verbatim what the patient said.
+Return ONLY the transcribed text in the original script or English, without quotes, introductory text, or explanations. If there is only silence or background static, return an empty string.`;
+
+  const candidateModels = [
+    'gemini-flash-lite-latest',
+    'gemini-3.5-transcribe',
+    'gemini-3.1-flash-lite',
+    'gemini-3.8-flash',
+    'gemini-flash-latest'
+  ].filter((m, i, arr) => arr.indexOf(m) === i && !['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash'].includes(m));
+
+  const startTime = Date.now();
+  let lastError = null;
+
+  for (const model of candidateModels) {
+    try {
+      const url = `${GEMINI_ENDPOINT}/${model}:generateContent?key=${apiKey}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                { inlineData: { mimeType, data: cleanBase64 } },
+                { text: promptText }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.1
+          }
+        }),
+        signal: AbortSignal.timeout(12000)
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Gemini ASR HTTP ${res.status}: ${errText.slice(0, 150)}`);
+      }
+
+      const json = await res.json();
+      const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const text = rawText.replace(/^(["'`])(.*)\1$/s, '$2').trim();
+
+      return {
+        text,
+        language: languageCode,
+        latencyMs: Date.now() - startTime,
+        provider: 'gemini_multimodal_asr',
+        model
+      };
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error('All Gemini transcription models failed.');
+}
+

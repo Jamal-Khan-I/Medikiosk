@@ -41,7 +41,7 @@ import { buildFHIRBundle } from './services/fhirService.js';
 import { processDocumentOCR } from './services/documentService.js';
 import { recordConsent, logPhysicianAudit } from './services/auditService.js';
 import { authenticateStaff, verifyAuthToken, requireRole } from './services/authService.js';
-import { generateAdaptiveFollowUp, generateClinicalSummary, evaluateRedFlags } from './services/llmService.js';
+import { generateAdaptiveFollowUp, generateClinicalSummary, evaluateRedFlags, transcribeAudio as geminiTranscribeAudio } from './services/llmService.js';
 import { bhashiniService } from './services/bhashiniService.js';
 
 const app = express();
@@ -479,7 +479,7 @@ app.get(['/api/kiosk/tts', '/api/voice/tts', '/api/tts'], async (req, res) => {
   }
 });
 
-// G3. Speech-to-Text (ASR) Audio Transcription via Bhashini ASR Pipeline
+// G3. Speech-to-Text (ASR) Audio Transcription with Bhashini + Gemini Multimodal Fallback
 app.post(['/api/voice/transcribe', '/api/asr'], async (req, res) => {
   try {
     const { audio_data, audioContent, language = 'hi', lang } = req.body;
@@ -488,24 +488,57 @@ app.post(['/api/voice/transcribe', '/api/asr'], async (req, res) => {
       return res.status(400).json({ error: 'audio_data or audioContent base64 payload is required.' });
     }
 
-    const transcription = await bhashiniService.transcribeAudio(audioPayload, lang || language);
+    const targetLang = lang || language || 'hi';
 
-    res.json({
-      success: true,
-      text: transcription.text,
-      language: transcription.language,
-      detected_language: transcription.language,
-      confidence: 0.96,
-      latency_ms: transcription.latencyMs,
-      provider: 'bhashini_asr',
-      serviceId: transcription.serviceId
+    // 1. Primary Engine: Bhashini ASR Pipeline
+    try {
+      const transcription = await bhashiniService.transcribeAudio(audioPayload, targetLang);
+      if (transcription && transcription.text && transcription.text.trim()) {
+        return res.json({
+          success: true,
+          text: transcription.text,
+          language: transcription.language,
+          detected_language: transcription.language,
+          confidence: 0.96,
+          latency_ms: transcription.latencyMs,
+          provider: 'bhashini_asr',
+          serviceId: transcription.serviceId
+        });
+      }
+    } catch (bhashiniErr) {
+      console.warn('[Bhashini ASR Failover]', bhashiniErr.message, '-> Activating Gemini Multimodal ASR');
+    }
+
+    // 2. High-Accuracy Fallback: Google Gemini Multimodal Audio Transcription
+    try {
+      const geminiResult = await geminiTranscribeAudio(audioPayload, targetLang);
+      if (geminiResult && geminiResult.text) {
+        return res.json({
+          success: true,
+          text: geminiResult.text,
+          language: targetLang,
+          detected_language: targetLang,
+          confidence: 0.98,
+          latency_ms: geminiResult.latencyMs,
+          provider: 'gemini_multimodal_asr',
+          serviceId: geminiResult.model || 'gemini-3.1-flash-lite'
+        });
+      }
+    } catch (geminiErr) {
+      console.error('[Gemini ASR Error]', geminiErr.message);
+    }
+
+    res.status(500).json({
+      success: false,
+      error: 'Audio transcription could not parse speech. Please select an option or try again.',
+      provider: 'none'
     });
   } catch (err) {
-    console.error('[Bhashini ASR Error]', err.message);
+    console.error('[ASR Critical Error]', err.message);
     res.status(500).json({
       success: false,
       error: err.message,
-      provider: 'bhashini_asr'
+      provider: 'asr_pipeline'
     });
   }
 });
