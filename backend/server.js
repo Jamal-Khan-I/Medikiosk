@@ -1394,9 +1394,26 @@ const distCandidates = [
 ];
 for (const cand of distCandidates) {
   if (fs.existsSync(cand) && fs.existsSync(path.join(cand, 'index.html'))) {
-    app.use(express.static(cand));
+    app.use(express.static(cand, {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('index.html')) {
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('Expires', '0');
+        } else if (filePath.includes('/assets/') || filePath.includes('\\assets\\')) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+      }
+    }));
+
     app.get('*', (req, res, next) => {
       if (req.path.startsWith('/api') || req.path.startsWith('/ws')) return next();
+      if (req.path.startsWith('/assets/')) {
+        return res.status(404).send('Asset not found');
+      }
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       res.sendFile(path.join(cand, 'index.html'));
     });
     console.log(`[MediKiosk Backend] Serving production frontend build from: ${cand}`);

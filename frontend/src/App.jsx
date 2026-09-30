@@ -11,6 +11,7 @@ import PatientKiosk from './surfaces/kiosk/PatientKiosk';
 import PhysicianDashboard from './surfaces/physician/PhysicianDashboard';
 import HospitalAdmin from './surfaces/admin/HospitalAdmin';
 import TriageAlertSurface from './surfaces/triage/TriageAlertSurface';
+import ErrorBoundary from './components/ErrorBoundary';
 
 import { 
   Globe, 
@@ -265,7 +266,9 @@ export default function App() {
       )}
 
       {activeSurface === 'KIOSK' && (
-        <PatientKiosk onExitKiosk={() => setActiveSurface('MARKETING')} />
+        <ErrorBoundary>
+          <PatientKiosk onExitKiosk={() => setActiveSurface('MARKETING')} />
+        </ErrorBoundary>
       )}
 
       {activeSurface === 'PHYSICIAN' && (
