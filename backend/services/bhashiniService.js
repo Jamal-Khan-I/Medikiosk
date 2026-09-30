@@ -48,6 +48,65 @@ function normalizeLang(lang) {
   return map[clean] || clean;
 }
 
+/**
+ * Converts 32-bit IEEE float WAV (Format 3) to standard 16-bit PCM WAV (Format 1).
+ * Essential for 100% universal browser and mobile device audio hardware decoding.
+ */
+function convertFloat32WavToPcm16(buf) {
+  if (!buf || buf.length < 44) return buf;
+  if (buf.slice(0, 4).toString('ascii') !== 'RIFF' || buf.slice(8, 12).toString('ascii') !== 'WAVE') {
+    return buf;
+  }
+
+  const audioFormat = buf.readUInt16LE(20);
+  const numChannels = buf.readUInt16LE(22);
+  const sampleRate = buf.readUInt32LE(24);
+  const bitsPerSample = buf.readUInt16LE(34);
+
+  // If already standard 16-bit PCM, return untouched
+  if (audioFormat === 1 && bitsPerSample === 16) {
+    return buf;
+  }
+
+  const dataIdx = buf.indexOf(Buffer.from('data'));
+  if (dataIdx === -1) return buf;
+
+  const dataSize = buf.readUInt32LE(dataIdx + 4);
+  const rawData = buf.slice(dataIdx + 8, dataIdx + 8 + dataSize);
+  
+  // If bitsPerSample is 32 (IEEE float) or audioFormat is 3
+  if (bitsPerSample === 32 || audioFormat === 3) {
+    const numSamples = Math.floor(rawData.length / 4);
+    const outBuf = Buffer.alloc(44 + numSamples * 2);
+
+    outBuf.write('RIFF', 0);
+    outBuf.writeUInt32LE(36 + numSamples * 2, 4);
+    outBuf.write('WAVE', 8);
+    outBuf.write('fmt ', 12);
+    outBuf.writeUInt32LE(16, 16);
+    outBuf.writeUInt16LE(1, 20); // 1 = PCM
+    outBuf.writeUInt16LE(numChannels, 22);
+    outBuf.writeUInt32LE(sampleRate, 24);
+    outBuf.writeUInt32LE(sampleRate * numChannels * 2, 28);
+    outBuf.writeUInt16LE(numChannels * 2, 32);
+    outBuf.writeUInt16LE(16, 34); // 16-bit
+    outBuf.write('data', 36);
+    outBuf.writeUInt32LE(numSamples * 2, 40);
+
+    for (let i = 0; i < numSamples; i++) {
+      let f = rawData.readFloatLE(i * 4);
+      if (isNaN(f)) f = 0;
+      const clamped = Math.max(-1.0, Math.min(1.0, f));
+      const s16 = Math.round(clamped * 32767);
+      outBuf.writeInt16LE(s16, 44 + i * 2);
+    }
+
+    return outBuf;
+  }
+
+  return buf;
+}
+
 class BhashiniService {
   constructor() {
     this.configEndpoint = CONFIG_ENDPOINT;
@@ -293,10 +352,11 @@ class BhashiniService {
       throw new Error('Bhashini TTS returned an empty audio response.');
     }
 
-    const audioBuffer = Buffer.from(audioContent, 'base64');
+    const rawBuffer = Buffer.from(audioContent, 'base64');
+    const audioBuffer = convertFloat32WavToPcm16(rawBuffer);
     const result = {
       audioBuffer,
-      audioBase64: audioContent,
+      audioBase64: audioBuffer.toString('base64'),
       mimeType: 'audio/wav',
       provider: 'bhashini_tts',
       serviceId,

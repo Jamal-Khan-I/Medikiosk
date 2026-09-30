@@ -464,6 +464,8 @@ app.get(['/api/kiosk/tts', '/api/voice/tts', '/api/tts'], async (req, res) => {
     const ttsResult = await bhashiniService.synthesizeSpeech(text.trim(), lang, gender);
 
     res.setHeader('Content-Type', 'audio/wav');
+    res.setHeader('Content-Length', ttsResult.audioBuffer.length);
+    res.setHeader('Accept-Ranges', 'bytes');
     res.setHeader('Cache-Control', 'public, max-age=86400');
     res.setHeader('X-TTS-Provider', 'bhashini');
     res.setHeader('X-TTS-Service-Id', ttsResult.serviceId || 'indic-tts');

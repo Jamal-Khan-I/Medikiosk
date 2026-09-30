@@ -251,6 +251,8 @@ export default function PatientKiosk({ onExitKiosk }) {
   const audioChunksRef = useRef([]);
   const activeAudioRef = useRef(null);
   const persistentAudioRef = useRef(null);
+  const audioCtxRef = useRef(null);
+  const currentAudioSourceRef = useRef(null);
   const speechVoicesRef = useRef([]);
   const lastSpokenKeyRef = useRef('');
   const speechRequestIdRef = useRef(0);
@@ -462,6 +464,34 @@ export default function PatientKiosk({ onExitKiosk }) {
   };
 
   // Prime mobile & desktop browser AudioContext, persistent Audio element & SpeechSynthesis on first user gesture
+  const ensureAudioUnlocked = useCallback(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+          if (!audioCtxRef.current) {
+            audioCtxRef.current = new AudioCtx();
+          }
+          if (audioCtxRef.current.state === 'suspended') {
+            audioCtxRef.current.resume().catch(() => {});
+          }
+        }
+
+        if (persistentAudioRef.current) {
+          persistentAudioRef.current.volume = 1.0;
+          persistentAudioRef.current.muted = false;
+        }
+
+        if (window.speechSynthesis) {
+          try { window.speechSynthesis.resume(); } catch (e) {}
+          if (speechVoicesRef.current.length === 0) {
+            speechVoicesRef.current = window.speechSynthesis.getVoices() || [];
+          }
+        }
+      }
+    } catch (e) {}
+  }, []);
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       if (!persistentAudioRef.current) {
@@ -479,6 +509,7 @@ export default function PatientKiosk({ onExitKiosk }) {
     }
 
     const unlockAudio = () => {
+      ensureAudioUnlocked();
       try {
         if (persistentAudioRef.current) {
           persistentAudioRef.current.src = 'data:audio/wav;base64,UklGRigAAABXQVZFRm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
@@ -492,21 +523,6 @@ export default function PatientKiosk({ onExitKiosk }) {
               persistentAudioRef.current.volume = 1.0;
             }
           });
-        }
-
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (AudioCtx) {
-          const ctx = new AudioCtx();
-          if (ctx.state === 'suspended') {
-            ctx.resume().catch(() => {});
-          }
-        }
-
-        if (window.speechSynthesis) {
-          try { window.speechSynthesis.resume(); } catch (e) {}
-          if (speechVoicesRef.current.length === 0) {
-            speechVoicesRef.current = window.speechSynthesis.getVoices() || [];
-          }
         }
       } catch (e) {}
 
@@ -523,7 +539,7 @@ export default function PatientKiosk({ onExitKiosk }) {
       window.removeEventListener('touchstart', unlockAudio);
       window.removeEventListener('keydown', unlockAudio);
     };
-  }, []);
+  }, [ensureAudioUnlocked]);
 
   // Browser Back / Forward History Navigation for Kiosk Steps
   const isPopNavRef = useRef(false);
@@ -556,7 +572,7 @@ export default function PatientKiosk({ onExitKiosk }) {
   }, [onExitKiosk]);
 
   // Bhashini Multilingual Voice Guide with Automatic SpeechSynthesis Fallback
-  const speakText = (text, lang = selectedLang) => {
+  const speakText = async (text, lang = selectedLang) => {
     if (!text || !text.trim()) return;
 
     // Sanitize duplicate acronyms (e.g. "आभा (ABHA)" -> "आभा") so it never reads ABHA twice
@@ -577,6 +593,12 @@ export default function PatientKiosk({ onExitKiosk }) {
     const reqId = speechRequestIdRef.current;
 
     // Stop any ongoing audio playback and speech synthesis
+    if (currentAudioSourceRef.current) {
+      try {
+        currentAudioSourceRef.current.stop();
+      } catch (e) {}
+      currentAudioSourceRef.current = null;
+    }
     if (activeAudioRef.current) {
       try {
         activeAudioRef.current.pause();
@@ -592,61 +614,97 @@ export default function PatientKiosk({ onExitKiosk }) {
     const triggerFallback = () => {
       if (fallbackTriggered || speechRequestIdRef.current !== reqId) return;
       fallbackTriggered = true;
-      try {
-        if (activeAudioRef.current) {
+      if (currentAudioSourceRef.current) {
+        try { currentAudioSourceRef.current.stop(); } catch (e) {}
+        currentAudioSourceRef.current = null;
+      }
+      if (activeAudioRef.current) {
+        try {
           activeAudioRef.current.pause();
           activeAudioRef.current.currentTime = 0;
-        }
-      } catch (e) {}
+        } catch (e) {}
+        activeAudioRef.current = null;
+      }
       speakBrowserSpeechSynthesis(cleanText, lang);
     };
 
     // Primary Voice Engine: Bhashini Indic Neural TTS API
     const ttsUrl = `${API_BASE}/voice/tts?text=${encodeURIComponent(cleanText)}&lang=${encodeURIComponent(lang)}&gender=female`;
 
-    const audio = persistentAudioRef.current || new Audio();
-    audio.volume = 1.0;
-    audio.muted = false;
-    audio.src = ttsUrl;
-    activeAudioRef.current = audio;
-
-    let hasStartedPlayback = false;
-    const fallbackTimer = setTimeout(() => {
-      if (!hasStartedPlayback && speechRequestIdRef.current === reqId) {
-        console.warn('[Bhashini TTS] Playback latency timeout, falling back to speech synthesis for:', lang);
-        triggerFallback();
-      }
-    }, 12000);
-
-    audio.onplaying = () => {
-      hasStartedPlayback = true;
-      clearTimeout(fallbackTimer);
-    };
-
-    audio.onerror = () => {
-      clearTimeout(fallbackTimer);
-      console.warn('[Bhashini TTS] Audio notice, falling back to speech synthesis for:', lang);
-      triggerFallback();
-    };
-
     try {
-      audio.load();
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise.then(() => {
-          hasStartedPlayback = true;
-          clearTimeout(fallbackTimer);
-        }).catch(playErr => {
-          if (playErr.name !== 'AbortError') {
-            clearTimeout(fallbackTimer);
-            console.warn('[Bhashini TTS] Play notice, activating fallback:', playErr.message);
-            triggerFallback();
+      const controller = new AbortController();
+      const abortTimer = setTimeout(() => controller.abort(), 10000);
+
+      const response = await fetch(ttsUrl, { signal: controller.signal });
+      clearTimeout(abortTimer);
+
+      if (speechRequestIdRef.current !== reqId) return;
+      if (!response.ok) throw new Error(`TTS HTTP ${response.status}`);
+
+      const arrayBuffer = await response.arrayBuffer();
+      if (!arrayBuffer || arrayBuffer.byteLength < 100) throw new Error('Empty audio buffer received');
+      if (speechRequestIdRef.current !== reqId) return;
+
+      // 1. Preferred Native Path: Web Audio API (zero autoplay lock once resumed)
+      let playedWithWebAudio = false;
+      try {
+        if (!audioCtxRef.current && typeof window !== 'undefined') {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) audioCtxRef.current = new AudioCtx();
+        }
+        if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+          await audioCtxRef.current.resume().catch(() => {});
+        }
+        if (audioCtxRef.current && audioCtxRef.current.state === 'running') {
+          const decoded = await audioCtxRef.current.decodeAudioData(arrayBuffer.slice(0));
+          if (speechRequestIdRef.current !== reqId) return;
+
+          const source = audioCtxRef.current.createBufferSource();
+          source.buffer = decoded;
+          source.connect(audioCtxRef.current.destination);
+          source.onended = () => {
+            if (currentAudioSourceRef.current === source) {
+              currentAudioSourceRef.current = null;
+            }
+          };
+          currentAudioSourceRef.current = source;
+          source.start(0);
+          playedWithWebAudio = true;
+        }
+      } catch (webAudioErr) {
+        console.warn('[Web Audio Decode Notice]:', webAudioErr.message, '-> Trying HTMLAudio fallback');
+      }
+
+      // 2. Secondary Native Path: HTML5 Audio with Blob URL
+      if (!playedWithWebAudio) {
+        if (speechRequestIdRef.current !== reqId) return;
+        const blob = new Blob([arrayBuffer], { type: 'audio/wav' });
+        const blobUrl = URL.createObjectURL(blob);
+        const audio = persistentAudioRef.current || new Audio();
+        audio.volume = 1.0;
+        audio.muted = false;
+        audio.src = blobUrl;
+        activeAudioRef.current = audio;
+
+        audio.onended = () => {
+          URL.revokeObjectURL(blobUrl);
+          if (activeAudioRef.current === audio) {
+            activeAudioRef.current = null;
           }
-        });
+        };
+
+        audio.onerror = () => {
+          URL.revokeObjectURL(blobUrl);
+          triggerFallback();
+        };
+
+        await audio.play();
       }
     } catch (err) {
-      clearTimeout(fallbackTimer);
-      triggerFallback();
+      if (err.name !== 'AbortError') {
+        console.warn('[Voice Engine Notice]:', err.message, '-> Activating SpeechSynthesis fallback');
+        triggerFallback();
+      }
     }
   };
 
@@ -655,6 +713,10 @@ export default function PatientKiosk({ onExitKiosk }) {
     setIsPlayingAudio(next);
     if (!next) {
       lastSpokenKeyRef.current = '';
+      if (currentAudioSourceRef.current) {
+        try { currentAudioSourceRef.current.stop(); } catch (e) {}
+        currentAudioSourceRef.current = null;
+      }
       if (activeAudioRef.current) {
         try {
           activeAudioRef.current.pause();
@@ -1184,6 +1246,19 @@ function cleanSpeechDuplicates(text) {
   };
 
   const toggleVoiceRecording = async () => {
+    ensureAudioUnlocked();
+    if (currentAudioSourceRef.current) {
+      try { currentAudioSourceRef.current.stop(); } catch (e) {}
+      currentAudioSourceRef.current = null;
+    }
+    if (activeAudioRef.current) {
+      try { activeAudioRef.current.pause(); activeAudioRef.current.currentTime = 0; } catch (e) {}
+      activeAudioRef.current = null;
+    }
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      try { window.speechSynthesis.cancel(); } catch (e) {}
+    }
+
     const currQ = questions[currentQuestionIdx];
     if (!currQ) return;
     const stepId = currQ.stepId;
@@ -1715,9 +1790,9 @@ function cleanSpeechDuplicates(text) {
                   <button
                     key={lang.code}
                     onClick={() => {
+                      ensureAudioUnlocked();
                       setSelectedLang(lang.code);
                       i18n.changeLanguage(lang.code);
-                      speakText(lang.greeting, lang.code);
                       setStep('IDENTITY_QUESTION');
                     }}
                     className="card-steep kiosk-lang-card kiosk-touch-target"
@@ -1769,7 +1844,10 @@ function cleanSpeechDuplicates(text) {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '10px' }}>
               <button
                 type="button"
-                onClick={() => speakText(t('identity:screen1_question'), selectedLang)}
+                onClick={() => {
+                  ensureAudioUnlocked();
+                  speakText(t('identity:screen1_question'), selectedLang);
+                }}
                 title="Listen to question"
                 style={{
                   width: '42px',
@@ -2289,7 +2367,10 @@ function cleanSpeechDuplicates(text) {
               </div>
               <button
                 type="button"
-                onClick={() => speakText(t('consent:audio_notice_text'), selectedLang)}
+                onClick={() => {
+                  ensureAudioUnlocked();
+                  speakText(t('consent:audio_notice_text'), selectedLang);
+                }}
                 className="btn-pill btn-pill-outline"
                 style={{ padding: '8px 16px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', flexShrink: 0 }}
                 title="Hear consent explanation spoken"
@@ -2489,6 +2570,7 @@ function cleanSpeechDuplicates(text) {
                 <button
                   type="button"
                   onClick={() => {
+                    ensureAudioUnlocked();
                     const q = questions[currentQuestionIdx];
                     if (q) {
                       const text = q.prompt[selectedLang] || q.prompt.en;

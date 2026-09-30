@@ -61,6 +61,20 @@ export default function App() {
   });
 
   const navigateTo = useCallback((surface, tab = 'home', pushHistory = true) => {
+    // Prime browser AudioContext & SpeechSynthesis on user click
+    if (typeof window !== 'undefined') {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+          const ctx = new AudioCtx();
+          if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+        }
+        if (window.speechSynthesis) {
+          window.speechSynthesis.resume();
+        }
+      } catch (e) {}
+    }
+
     setActiveSurfaceState(surface);
     setMarketingTabState(tab);
 
