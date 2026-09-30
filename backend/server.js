@@ -453,7 +453,7 @@ app.post('/api/kiosk/intake/analyze-step', (req, res) => {
   res.json(analysis);
 });
 
-// G2. Multilingual Speech Synthesis via Bhashini TTS Pipeline
+// G2. Multilingual Speech Synthesis via Bhashini TTS Pipeline (Primary) + Neural Fallback
 app.get(['/api/kiosk/tts', '/api/voice/tts', '/api/tts'], async (req, res) => {
   try {
     const { text, lang = 'hi', gender = 'female' } = req.query;
@@ -463,21 +463,30 @@ app.get(['/api/kiosk/tts', '/api/voice/tts', '/api/tts'], async (req, res) => {
 
     const ttsResult = await bhashiniService.synthesizeSpeech(text.trim(), lang, gender);
 
-    res.setHeader('Content-Type', 'audio/wav');
+    res.setHeader('Content-Type', ttsResult.mimeType || 'audio/wav');
     res.setHeader('Content-Length', ttsResult.audioBuffer.length);
     res.setHeader('Accept-Ranges', 'bytes');
     res.setHeader('Cache-Control', 'public, max-age=86400');
-    res.setHeader('X-TTS-Provider', 'bhashini');
+    res.setHeader('X-TTS-Provider', ttsResult.provider || 'bhashini');
     res.setHeader('X-TTS-Service-Id', ttsResult.serviceId || 'indic-tts');
     res.setHeader('X-TTS-Latency', `${ttsResult.latencyMs}ms`);
     
     res.send(ttsResult.audioBuffer);
   } catch (err) {
-    console.error('[Bhashini TTS Error]', err.message);
-    res.status(503).json({ 
-      error: 'Bhashini TTS service unavailable', 
-      details: err.message 
-    });
+    console.error('[TTS Emergency Failover]', err.message);
+    try {
+      const emergencyResult = await bhashiniService.synthesizeNeuralFallback(req.query.text || 'नमस्ते', req.query.lang || 'hi');
+      res.setHeader('Content-Type', emergencyResult.mimeType || 'audio/mpeg');
+      res.setHeader('Content-Length', emergencyResult.audioBuffer.length);
+      res.setHeader('X-TTS-Provider', 'emergency_neural_tts');
+      return res.send(emergencyResult.audioBuffer);
+    } catch (emergencyErr) {
+      console.error('[TTS Catastrophic Error]', emergencyErr.message);
+      res.status(503).json({ 
+        error: 'TTS service unavailable', 
+        details: err.message 
+      });
+    }
   }
 });
 

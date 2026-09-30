@@ -17,6 +17,16 @@ try {
   console.warn('[IntakeService] Notice: Could not load ayush_questions_22.json:', e.message);
 }
 
+let socrates22Translations = {};
+try {
+  const sp = path.join(__dirname, 'socrates_questions_22.json');
+  if (fs.existsSync(sp)) {
+    socrates22Translations = JSON.parse(fs.readFileSync(sp, 'utf8'));
+  }
+} catch (e) {
+  console.warn('[IntakeService] Notice: Could not load socrates_questions_22.json:', e.message);
+}
+
 export const ADAPTIVE_COMPLAINT_TREES = {
   'CHEST_PAIN': {
     code: 'CARDIOVASCULAR',
@@ -658,17 +668,16 @@ export function getAdaptiveQuestions(complaintText = '', mode = 'STANDARD_SOCRAT
 
   // Enrich with 22-language prompts
   const enrichedQuestions = baseQuestions.map(q => {
-    const extraPrompts = ayush22Translations[q.stepId];
-    if (extraPrompts) {
-      return {
-        ...q,
-        prompt: {
-          ...q.prompt,
-          ...extraPrompts
-        }
-      };
-    }
-    return q;
+    const socratesExtra = socrates22Translations[q.stepId];
+    const ayushExtra = ayush22Translations[q.stepId];
+    return {
+      ...q,
+      prompt: {
+        ...q.prompt,
+        ...(socratesExtra || {}),
+        ...(ayushExtra || {})
+      }
+    };
   });
 
   return enrichedQuestions;

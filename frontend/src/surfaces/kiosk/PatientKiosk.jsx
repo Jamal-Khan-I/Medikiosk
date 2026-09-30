@@ -678,7 +678,8 @@ export default function PatientKiosk({ onExitKiosk }) {
       // 2. Secondary Native Path: HTML5 Audio with Blob URL
       if (!playedWithWebAudio) {
         if (speechRequestIdRef.current !== reqId) return;
-        const blob = new Blob([arrayBuffer], { type: 'audio/wav' });
+        const contentType = response.headers.get('content-type') || 'audio/wav';
+        const blob = new Blob([arrayBuffer], { type: contentType });
         const blobUrl = URL.createObjectURL(blob);
         const audio = persistentAudioRef.current || new Audio();
         audio.volume = 1.0;
