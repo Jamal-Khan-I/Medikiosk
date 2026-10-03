@@ -1053,6 +1053,16 @@ html, body {
   letter-spacing: -0.02em;
   margin-bottom: 6px;
 }
+.kiosk-question-heading-sensitive {
+  font-family: var(--font-sans);
+  font-size: 1.08rem !important;
+  font-weight: 500 !important;
+  line-height: 1.45 !important;
+  color: var(--ink-black);
+  letter-spacing: -0.01em;
+  margin-bottom: 6px;
+}
+
 .kiosk-voice-box {
   background-color: var(--fog-white);
   border-radius: 16px;

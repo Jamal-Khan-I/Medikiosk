@@ -194,7 +194,10 @@ export default function PatientKiosk({ onExitKiosk }) {
     ayush_ahara_shakti: '',
     ayush_vyayama_shakti: '',
     ayush_vaya: '',
-    ayush_ahara_vihara: ''
+    ayush_ahara_vihara: '',
+    personal_history: '',
+    review_of_systems_mental: '',
+    review_of_systems_reproductive: ''
   });
 
   // Dynamic Gemini Adaptive Dialogue State
@@ -216,6 +219,7 @@ export default function PatientKiosk({ onExitKiosk }) {
   const [uploadedDocs, setUploadedDocs] = useState(() => savedSession?.uploadedDocs || []);
   const [extractedEntitiesList, setExtractedEntitiesList] = useState(() => savedSession?.extractedEntitiesList || []);
   const [isScanning, setIsScanning] = useState(false);
+  const [scanningProgress, setScanningProgress] = useState('');
   const [docUploadError, setDocUploadError] = useState('');
   const [selectedDocTypeTag, setSelectedDocTypeTag] = useState('AUTO_DETECT');
   const [isDragOver, setIsDragOver] = useState(false);
@@ -730,13 +734,11 @@ export default function PatientKiosk({ onExitKiosk }) {
       }
     } else {
       lastSpokenKeyRef.current = '';
-      if (step === 'IDENTITY_QUESTION') {
-        speakText(t('identity:screen1_question'), selectedLang);
-      } else if (step === 'CONSENT') {
+      if (step === 'CONSENT') {
         speakText(t('consent:audio_notice_text'), selectedLang);
       } else if (step === 'INTAKE') {
         const q = questions[currentQuestionIdx];
-        if (q) {
+        if (q && !q.isSensitive) {
           const promptText = q.prompt[selectedLang] || q.prompt.en;
           speakText(promptText, selectedLang);
         }
@@ -758,17 +760,49 @@ export default function PatientKiosk({ onExitKiosk }) {
       return;
     }
 
+    // Voice narration is disabled on Step 2 (Identity question screen)
+    if (step === 'IDENTITY_QUESTION') {
+      lastSpokenKeyRef.current = 'IDENTITY_QUESTION_MUTED';
+      if (activeAudioRef.current) {
+        try {
+          activeAudioRef.current.pause();
+          activeAudioRef.current.currentTime = 0;
+        } catch (e) {}
+        activeAudioRef.current = null;
+      }
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        try { window.speechSynthesis.cancel(); } catch (e) {}
+      }
+      return;
+    }
+
     let textToNarrate = '';
     let screenKey = '';
 
-    if (step === 'IDENTITY_QUESTION') {
-      textToNarrate = t('identity:screen1_question');
-      screenKey = `ID_Q_${selectedLang}_${textToNarrate}`;
-    } else if (step === 'CONSENT') {
+    if (step === 'CONSENT') {
       textToNarrate = t('consent:audio_notice_text');
       screenKey = `CONSENT_${selectedLang}_${textToNarrate}`;
     } else if (step === 'INTAKE' && questions && questions[currentQuestionIdx]) {
       const q = questions[currentQuestionIdx];
+      // Feature 3: Dignity-Aware Sensitive Topic Mode — strictly disable auto-play audio
+      if (q?.isSensitive) {
+        lastSpokenKeyRef.current = `SENSITIVE_MUTED_${currentQuestionIdx}_${q.stepId}`;
+        if (currentAudioSourceRef.current) {
+          try { currentAudioSourceRef.current.stop(); } catch (e) {}
+          currentAudioSourceRef.current = null;
+        }
+        if (activeAudioRef.current) {
+          try {
+            activeAudioRef.current.pause();
+            activeAudioRef.current.currentTime = 0;
+          } catch (e) {}
+          activeAudioRef.current = null;
+        }
+        if (typeof window !== 'undefined' && window.speechSynthesis) {
+          try { window.speechSynthesis.cancel(); } catch (e) {}
+        }
+        return;
+      }
       textToNarrate = q?.prompt?.[selectedLang] || q?.prompt?.en || '';
       screenKey = `INTAKE_${currentQuestionIdx}_${selectedLang}_${textToNarrate}`;
     }
@@ -1419,10 +1453,13 @@ function cleanSpeechDuplicates(text) {
   };
 
   const handleNextQuestion = () => {
+    const currQ = questions[currentQuestionIdx];
     if (!isCurrentQuestionAnswered()) {
       const warningMsg = t('intake:answer_required_warning', 'Please select an option, speak into the microphone, or type your answer before proceeding.');
       setQuestionValidationError(warningMsg);
-      speakText(warningMsg);
+      if (!currQ?.isSensitive) {
+        speakText(warningMsg);
+      }
       return;
     }
     setQuestionValidationError('');
@@ -1552,47 +1589,91 @@ function cleanSpeechDuplicates(text) {
     return t('scanner:type_medical_record');
   };
 
-  // Process any incoming file (from browse or drag & drop)
-  const processSelectedFile = (file) => {
+  // Process incoming files with support for multiple file selection & drag-and-drop
+  const processSelectedFiles = async (filesList) => {
     setDocUploadError('');
-
-    if (file.size > 20 * 1024 * 1024) {
-      setDocUploadError(t('scanner:error_oversized_file'));
-      return;
-    }
+    const filesArray = Array.from(filesList || []);
+    if (!filesArray.length) return;
 
     const validExtensions = /\.(pdf|png|jpg|jpeg|webp|txt)$/i;
-    if (!validExtensions.test(file.name)) {
-      setDocUploadError(t('scanner:error_invalid_format'));
+    const validFiles = [];
+    const errors = [];
+
+    for (const file of filesArray) {
+      if (file.size > 20 * 1024 * 1024) {
+        errors.push(`${file.name}: ${t('scanner:error_oversized_file') || 'File size exceeds 20MB limit'}`);
+      } else if (!validExtensions.test(file.name)) {
+        errors.push(`${file.name}: ${t('scanner:error_invalid_format') || 'Unsupported format'}`);
+      } else {
+        validFiles.push(file);
+      }
+    }
+
+    if (validFiles.length === 0) {
+      if (errors.length > 0) {
+        setDocUploadError(errors.join(', '));
+      }
       return;
     }
 
     setIsScanning(true);
-    downscaleImageFile(file)
-      .then(({ dataUrl, mimeType, fileName }) => {
-        handleDocumentUpload(selectedDocTypeTag, '', fileName, dataUrl, mimeType);
-      })
-      .catch((err) => {
-        setIsScanning(false);
-        setDocUploadError((t('scanner:error_read_failed') || 'File read failed') + (err?.message ? `: ${err.message}` : ''));
-      });
+    const total = validFiles.length;
+
+    try {
+      for (let i = 0; i < total; i++) {
+        const file = validFiles[i];
+        const progressMsg = total > 1
+          ? `${t('scanner:ocr_running_title') || 'Digitizing document'} (${i + 1}/${total}): ${file.name}`
+          : `${t('scanner:ocr_running_title') || 'Digitizing document'}: ${file.name}`;
+        setScanningProgress(progressMsg);
+
+        try {
+          const { dataUrl, mimeType, fileName } = await downscaleImageFile(file);
+          const res = await api.uploadDocument({
+            patient_id: patientData?.id || 'pat-kiosk-session',
+            document_type: selectedDocTypeTag || 'AUTO_DETECT',
+            file_name: fileName || file.name || 'Clinical_Document.jpg',
+            raw_text: '',
+            file_data: dataUrl,
+            mime_type: mimeType || 'image/jpeg'
+          });
+
+          if (res?.success && res?.document) {
+            setUploadedDocs(prev => [...prev, res.document]);
+            if (res.extracted_entities && res.extracted_entities.length > 0) {
+              setExtractedEntitiesList(prev => [...prev, ...res.extracted_entities]);
+            }
+          }
+        } catch (fileErr) {
+          console.error(`Error processing file ${file.name}:`, fileErr);
+          errors.push(`${file.name}: ${fileErr.message || (t('scanner:error_ocr_process') || 'OCR processing failed')}`);
+        }
+      }
+
+      if (errors.length > 0) {
+        setDocUploadError(errors.join(' | '));
+      }
+    } finally {
+      setIsScanning(false);
+      setScanningProgress('');
+    }
   };
 
-  // File Selector change event
+  // File Selector change event (handles multiple files)
   const handleFileInputChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    processSelectedFile(file);
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    processSelectedFiles(files);
     e.target.value = '';
   };
 
-  // Drag & Drop event handler
+  // Drag & Drop event handler (handles multiple dropped files)
   const handleFileDrop = (e) => {
     e.preventDefault();
     setIsDragOver(false);
-    const file = e.dataTransfer?.files?.[0];
-    if (file) {
-      processSelectedFile(file);
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+      processSelectedFiles(files);
     }
   };
 
@@ -1842,35 +1923,9 @@ function cleanSpeechDuplicates(text) {
             <span className="badge-pill badge-peach" style={{ marginBottom: '14px' }}>
               {t('common:step_counter', { current: 2, total: 6 })}
             </span>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '10px' }}>
-              <button
-                type="button"
-                onClick={() => {
-                  ensureAudioUnlocked();
-                  speakText(t('identity:screen1_question'), selectedLang);
-                }}
-                title="Listen to question"
-                style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '50%',
-                  backgroundColor: 'var(--blush-peach)',
-                  color: 'var(--sienna-brown)',
-                  border: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
-                }}
-              >
-                <Volume2 size={20} />
-              </button>
-              <h1 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.2rem)', margin: 0, color: 'var(--ink-black)' }}>
-                {t('identity:screen1_question')}
-              </h1>
-            </div>
+            <h1 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.2rem)', margin: '0 0 10px 0', color: 'var(--ink-black)' }}>
+              {t('identity:screen1_question')}
+            </h1>
             <p style={{ color: 'var(--slate-gray)', fontSize: '1.05rem', marginBottom: '32px' }}>
               {t('identity:screen1_subtitle')}
             </p>
@@ -2557,6 +2612,32 @@ function cleanSpeechDuplicates(text) {
             </div>
           ) : (
           <div style={{ maxWidth: '820px', margin: '0 auto' }}>
+            {/* Feature 3: Dignity-Aware Sensitive Topic Banner */}
+            {questions[currentQuestionIdx]?.isSensitive && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px 16px',
+                backgroundColor: '#f5f3ff',
+                border: '1.5px solid #c7d2fe',
+                borderRadius: '12px',
+                marginBottom: '16px',
+                animation: 'fadeIn 0.25s ease'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <ShieldCheck size={18} color="#4f46e5" />
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#3730a3' }}>
+                    Dignity Mode • Private & Confidential ({questions[currentQuestionIdx]?.sensitiveCategory || 'Sensitive Topic'})
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#4f46e5', fontWeight: 500 }}>
+                  <VolumeX size={15} />
+                  <span>Audio auto-play muted for privacy</span>
+                </div>
+              </div>
+            )}
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <span className="badge-pill badge-gray">
                 {t('intake:question_progress', { current: currentQuestionIdx + 1, total: questions.length })} • {questions[currentQuestionIdx]?.code}
@@ -2566,7 +2647,17 @@ function cleanSpeechDuplicates(text) {
               </span>
             </div>
 
-            <div className="card-steep kiosk-content-card" style={{ marginBottom: '24px' }}>
+            <div 
+              className="card-steep kiosk-content-card" 
+              style={{ 
+                marginBottom: '24px',
+                ...(questions[currentQuestionIdx]?.isSensitive ? {
+                  borderColor: '#c7d2fe',
+                  backgroundColor: '#ffffff',
+                  boxShadow: '0 4px 20px rgba(99, 102, 241, 0.08)'
+                } : {})
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '20px' }}>
                 <button
                   type="button"
@@ -2578,13 +2669,13 @@ function cleanSpeechDuplicates(text) {
                       speakText(text, selectedLang);
                     }
                   }}
-                  title="Listen to question"
+                  title={questions[currentQuestionIdx]?.isSensitive ? "Tap to listen privately (optional)" : "Listen to question"}
                   style={{
-                    width: '42px',
-                    height: '42px',
+                    width: questions[currentQuestionIdx]?.isSensitive ? '38px' : '42px',
+                    height: questions[currentQuestionIdx]?.isSensitive ? '38px' : '42px',
                     borderRadius: '50%',
-                    backgroundColor: 'var(--blush-peach)',
-                    color: 'var(--sienna-brown)',
+                    backgroundColor: questions[currentQuestionIdx]?.isSensitive ? '#ede9fe' : 'var(--blush-peach)',
+                    color: questions[currentQuestionIdx]?.isSensitive ? '#5b21b6' : 'var(--sienna-brown)',
                     border: 'none',
                     display: 'flex',
                     alignItems: 'center',
@@ -2594,25 +2685,61 @@ function cleanSpeechDuplicates(text) {
                     boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
                   }}
                 >
-                  <Volume2 size={20} />
+                  <Volume2 size={questions[currentQuestionIdx]?.isSensitive ? 18 : 20} />
                 </button>
                 <div style={{ flex: 1 }}>
-                  <h2 className="kiosk-question-heading">
+                  <h2 
+                    className={questions[currentQuestionIdx]?.isSensitive ? "kiosk-question-heading-sensitive" : "kiosk-question-heading"}
+                    style={questions[currentQuestionIdx]?.isSensitive ? {
+                      fontSize: '1.08rem',
+                      fontWeight: 500,
+                      lineHeight: 1.45,
+                      color: 'var(--ink-black)',
+                      letterSpacing: '-0.01em',
+                      margin: 0
+                    } : undefined}
+                  >
                     {questions[currentQuestionIdx]?.prompt[selectedLang] || questions[currentQuestionIdx]?.prompt.en}
                   </h2>
                 </div>
               </div>
 
+              {/* Touch-First Priority Prompt for Sensitive Questions */}
+              {questions[currentQuestionIdx]?.isSensitive && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '10px 14px',
+                  backgroundColor: '#faf5ff',
+                  borderRadius: '10px',
+                  border: '1px dashed #d8b4fe',
+                  marginBottom: '16px',
+                  fontSize: '0.84rem',
+                  color: '#6b21a8'
+                }}>
+                  <Fingerprint size={16} />
+                  <span><strong>Touch-first entry:</strong> Silently tap your response below. Your answer is confidential and shared directly with your doctor.</span>
+                </div>
+              )}
+
               {/* Voice & Touch Interactive Area */}
               <div style={{ marginBottom: '24px' }}>
-                <div className="kiosk-voice-box" style={{ marginBottom: isListening ? '12px' : '18px' }}>
+                <div 
+                  className="kiosk-voice-box" 
+                  style={{ 
+                    marginBottom: isListening ? '12px' : '18px',
+                    backgroundColor: questions[currentQuestionIdx]?.isSensitive ? '#f8fafc' : 'var(--fog-white)',
+                    border: questions[currentQuestionIdx]?.isSensitive ? '1px solid #e2e8f0' : undefined
+                  }}
+                >
                   <div className="kiosk-voice-row-top">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <button
                         onClick={toggleVoiceRecording}
                         disabled={isTranscribing}
-                        className={`btn-pill ${isListening ? 'live-mic-active' : 'btn-pill-primary'} kiosk-touch-target`}
-                        style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                        className={`btn-pill ${isListening ? 'live-mic-active' : (questions[currentQuestionIdx]?.isSensitive ? 'btn-pill-outline' : 'btn-pill-primary')} kiosk-touch-target`}
+                        style={{ padding: questions[currentQuestionIdx]?.isSensitive ? '8px 16px' : '10px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}
                       >
                         {isTranscribing ? (
                           <Loader2 size={18} className="animate-spin" />
@@ -2626,7 +2753,7 @@ function cleanSpeechDuplicates(text) {
                             ? t('intake:mic_btn_processing') 
                             : isListening 
                               ? t('intake:mic_btn_listening') 
-                              : t('intake:mic_btn_speak')}
+                              : (questions[currentQuestionIdx]?.isSensitive ? 'Tap mic to dictate privately (optional)' : t('intake:mic_btn_speak'))}
                         </span>
                       </button>
 
@@ -2959,6 +3086,7 @@ function cleanSpeechDuplicates(text) {
               <input
                 ref={fileInputRef}
                 type="file"
+                multiple
                 accept=".pdf,.png,.jpg,.jpeg,.webp,.txt"
                 onChange={handleFileInputChange}
                 style={{ display: 'none' }}
@@ -2970,7 +3098,9 @@ function cleanSpeechDuplicates(text) {
               <div className="card-steep-peach" style={{ padding: '20px', marginBottom: '24px', textAlign: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '8px' }}>
                   <RefreshCw size={22} className="animate-spin" color="var(--sienna-brown)" />
-                  <strong style={{ fontSize: '1.05rem', color: 'var(--sienna-brown)' }}>{t('scanner:ocr_running_title')}</strong>
+                  <strong style={{ fontSize: '1.05rem', color: 'var(--sienna-brown)' }}>
+                    {scanningProgress || t('scanner:ocr_running_title')}
+                  </strong>
                 </div>
                 <div style={{ fontSize: '0.82rem', color: 'var(--sienna-brown)', opacity: 0.85 }}>
                   {t('scanner:ocr_running_desc')}

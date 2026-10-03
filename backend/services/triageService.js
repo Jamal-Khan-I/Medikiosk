@@ -72,10 +72,15 @@ export function analyzeRedFlags(text = '', answers = {}) {
   const isRedFlag = matchedAlerts.length > 0;
   const highestSeverity = matchedAlerts.some(a => a.severity === 'CRITICAL') ? 'CRITICAL' : (isRedFlag ? 'HIGH' : 'NONE');
 
+  const whyThis = isRedFlag
+    ? `Triggered by clinical emergency triage rule: patient statement contains high-risk symptom indicators ("${matchedAlerts.flatMap(a => a.matchedKeywords).join('", "')}") corresponding to ${matchedAlerts.map(a => a.title).join('; ')}.`
+    : null;
+
   return {
     isRedFlag,
     severity: highestSeverity,
     alerts: matchedAlerts,
-    summaryReason: matchedAlerts.map(a => `${a.title} (${a.matchedKeywords.join(', ')})`).join(' | ') || null
+    summaryReason: matchedAlerts.map(a => `${a.title} (${a.matchedKeywords.join(', ')})`).join(' | ') || null,
+    why_this: whyThis
   };
 }

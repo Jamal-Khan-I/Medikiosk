@@ -41,7 +41,7 @@ import { buildFHIRBundle } from './services/fhirService.js';
 import { processDocumentOCR } from './services/documentService.js';
 import { recordConsent, logPhysicianAudit } from './services/auditService.js';
 import { authenticateStaff, verifyAuthToken, requireRole } from './services/authService.js';
-import { generateAdaptiveFollowUp, generateClinicalSummary, evaluateRedFlags, transcribeAudio as geminiTranscribeAudio } from './services/llmService.js';
+import { generateAdaptiveFollowUp, generateClinicalSummary, evaluateRedFlags, transcribeAudio as geminiTranscribeAudio, evaluateAyushAllopathyCrossSafety, detectLongitudinalContradictions } from './services/llmService.js';
 import { bhashiniService } from './services/bhashiniService.js';
 
 const app = express();
@@ -423,7 +423,8 @@ app.post('/api/triage/check-red-flags', async (req, res) => {
       severity,
       rule_analysis: ruleResult,
       llm_analysis: llmResult,
-      summary_reason: ruleResult.summaryReason || llmResult?.reason || 'No acute red flags detected'
+      summary_reason: ruleResult.summaryReason || llmResult?.reason || 'No acute red flags detected',
+      why_this: ruleResult.why_this || llmResult?.why_this || (isEmergency ? `Emergency triage protocol activated for: ${ruleResult.summaryReason || llmResult?.reason}` : null)
     });
   } catch (err) {
     console.error('[Triage Check Error]', err);
@@ -715,7 +716,8 @@ app.post('/api/kiosk/session/submit', async (req, res) => {
             matchedKeywords: ['AI Emergency Assessment'],
             recommendedAction: llmFlag.recommended_action || llmFlag.clinical_rationale || 'Immediate physician evaluation'
           }],
-          summaryReason: llmFlag.reason || 'AI emergency clinical assessment'
+          summaryReason: llmFlag.reason || 'AI emergency clinical assessment',
+          why_this: llmFlag.why_this || llmFlag.clinical_rationale || `Emergency indicator identified from patient statement: "${textToCheck}".`
         };
       }
     } catch (triageErr) {
@@ -737,6 +739,7 @@ app.post('/api/kiosk/session/submit', async (req, res) => {
     is_red_flagged: triage.isRedFlag,
     red_flag_reason: triage.summaryReason,
     red_flag_severity: triage.severity,
+    red_flag_why_this: triage.why_this || (triage.isRedFlag ? `Triggered by clinical emergency symptoms: ${triage.summaryReason}. Prompt triage evaluation required.` : null),
     session_start: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
     session_end: new Date().toISOString()
   });
@@ -781,7 +784,13 @@ app.post('/api/kiosk/session/submit', async (req, res) => {
         review_of_systems: gSummary.review_of_systems !== undefined ? gSummary.review_of_systems : summaryData.review_of_systems,
         prior_investigations_summary: gSummary.prior_investigations_summary !== undefined ? gSummary.prior_investigations_summary : summaryData.prior_investigations_summary,
         clinical_discrepancies: gSummary.clinical_discrepancies || [],
-        suggested_differential_diagnoses: gSummary.suggested_differential_diagnoses || [],
+        suggested_differential_diagnoses: (gSummary.suggested_differential_diagnoses && gSummary.suggested_differential_diagnoses.length > 0)
+          ? gSummary.suggested_differential_diagnoses
+          : (summaryData.suggested_differential_diagnoses || []),
+        why_this_explanations: {
+          ...(summaryData.why_this_explanations || {}),
+          ...(gSummary.why_this_explanations || {})
+        },
         socrates_synthesis: gSummary.socrates_synthesis || null,
         summary_provider: 'gemini',
         summary_model: geminiSummary.model
@@ -789,6 +798,76 @@ app.post('/api/kiosk/session/submit', async (req, res) => {
     }
   } catch (summaryErr) {
     console.warn('[Kiosk Submit] Gemini summary generation fallback:', summaryErr.message);
+  }
+
+  // FEATURE 1 — AYUSH-Allopathy Cross-System Safety Check
+  // Runs ONLY when patient session has BOTH:
+  // 1) Digitized prior allopathic prescription (from Module B)
+  // 2) Completed Dashavidha Pariksha assessment (AYUSH mode, Module A)
+  const hasPrescriptionDocs = uploaded_document_ids.length > 0 && linkedEntities.some(e => e.category === 'MEDICATION');
+  const isAyushMode = intake_mode === 'AYUSH_DASHAVIDHA';
+
+  if (hasPrescriptionDocs && isAyushMode) {
+    const extractedMedList = linkedEntities
+      .filter(e => e.category === 'MEDICATION')
+      .map(e => `${e.entity_name} ${e.entity_value || ''}`.trim());
+
+    if (answers.current_medications && !extractedMedList.includes(answers.current_medications)) {
+      extractedMedList.push(answers.current_medications);
+    }
+
+    try {
+      const crossSystemNote = await evaluateAyushAllopathyCrossSafety({
+        medications: extractedMedList,
+        ayushAssessment: answers,
+        hasPrescriptionDocs: true,
+        isAyushMode: true
+      });
+
+      if (crossSystemNote && crossSystemNote.has_concern) {
+        summaryData.cross_system_safety_note = crossSystemNote;
+        summaryData.why_this_explanations = {
+          ...(summaryData.why_this_explanations || {}),
+          cross_system: crossSystemNote.why_this
+        };
+      }
+    } catch (crossErr) {
+      console.warn('[Cross-System Safety] Evaluation error:', crossErr.message);
+    }
+  }
+
+  // FEATURE 2 — Longitudinal Contradiction Detection
+  // Using persistent patient records: compare key factual fields against most recent prior visit
+  const priorEncounters = store.get('encounters')
+    .filter(e => e.patient_id === patient.id && e.id !== encounter.id)
+    .sort((a, b) => new Date(b.created_at || b.session_start) - new Date(a.created_at || a.session_start));
+
+  if (priorEncounters.length > 0) {
+    const lastEncounter = priorEncounters[0];
+    const priorSummary = store.get('clinical_summaries').find(s => s.encounter_id === lastEncounter.id);
+    if (priorSummary) {
+      try {
+        const foundDiscrepancies = await detectLongitudinalContradictions(
+          priorSummary, 
+          answers, 
+          summaryData
+        );
+        if (foundDiscrepancies && foundDiscrepancies.length > 0) {
+          summaryData.longitudinal_discrepancies = foundDiscrepancies.map(d => ({
+            ...d,
+            prior_visit_id: lastEncounter.id,
+            prior_visit_token: lastEncounter.token_number || `TK-${lastEncounter.id}`,
+            prior_visit_date: lastEncounter.created_at || lastEncounter.session_start
+          }));
+          summaryData.why_this_explanations = {
+            ...(summaryData.why_this_explanations || {}),
+            discrepancies: `Reconciled against most recent prior consultation (#${lastEncounter.token_number || lastEncounter.id}). Surfaced ${foundDiscrepancies.length} factual variation(s) for physician clinical review.`
+          };
+        }
+      } catch (discErr) {
+        console.warn('[Longitudinal Discrepancy] Check error:', discErr.message);
+      }
+    }
   }
 
   const summary = store.insert('clinical_summaries', {

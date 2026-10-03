@@ -22,9 +22,71 @@ import {
   Trash2,
   ArrowLeft, 
   Shield, 
-  HeartPulse
+  HeartPulse,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { api } from '../../services/api';
+
+// Feature 4 — Transparent AI Reasoning ("Why This?" Layer)
+export function WhyThisTag({ explanation, label = "Why this?", defaultOpen = false }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  if (!explanation) return null;
+
+  return (
+    <div style={{ marginTop: '8px' }}>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '5px',
+          padding: '4px 11px',
+          fontSize: '0.74rem',
+          fontWeight: 600,
+          borderRadius: '999px',
+          border: `1px solid ${isOpen ? '#a5b4fc' : '#e0e7ff'}`,
+          backgroundColor: isOpen ? '#eef2ff' : '#f8faff',
+          color: isOpen ? '#3730a3' : '#4f46e5',
+          cursor: 'pointer',
+          transition: 'all 0.15s ease',
+          lineHeight: '16px'
+        }}
+        title="View clinical evidence trace and reasoning for this AI output"
+      >
+        <Sparkles size={12} color="#6366f1" />
+        <span>{isOpen ? 'Hide AI Evidence' : label}</span>
+        {isOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+      </button>
+
+      {isOpen && (
+        <div style={{
+          marginTop: '8px',
+          padding: '12px 16px',
+          backgroundColor: '#f5f7ff',
+          border: '1px solid #c7d2fe',
+          borderRadius: '12px',
+          fontSize: '0.83rem',
+          color: '#1e293b',
+          lineHeight: 1.55,
+          boxShadow: '0 2px 8px rgba(99, 102, 241, 0.08)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, color: '#4338ca', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>
+            <ShieldCheck size={14} color="#4f46e5" />
+            <span>AI Evidence &amp; Clinical Data Trace</span>
+          </div>
+          <div style={{ color: '#334155' }}>
+            {explanation}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function PhysicianDashboard({ onExitDashboard }) {
   const [physicianUser, setPhysicianUser] = useState(() => {
@@ -435,19 +497,30 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                     padding: '16px 20px',
                     marginBottom: '20px',
                     display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px'
+                    flexDirection: 'column',
+                    gap: '10px'
                   }}>
-                    <AlertTriangle size={24} color="var(--alert-red-bright)" className="animate-pulse-red" />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ color: 'var(--alert-red-text)', fontWeight: 600, fontSize: '0.96rem' }}>
-                        CRITICAL CLINICAL TRIAGE RED FLAG
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <AlertTriangle size={24} color="var(--alert-red-bright)" className="animate-pulse-red" />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ color: 'var(--alert-red-text)', fontWeight: 600, fontSize: '0.96rem' }}>
+                          CRITICAL CLINICAL TRIAGE RED FLAG
+                        </div>
+                        <div style={{ color: 'var(--alert-red-text)', fontSize: '0.88rem', marginTop: '2px' }}>
+                          {encounterDetails.encounter.red_flag_reason}
+                        </div>
                       </div>
-                      <div style={{ color: 'var(--alert-red-text)', fontSize: '0.88rem', marginTop: '2px' }}>
-                        {encounterDetails.encounter.red_flag_reason}
-                      </div>
+                      <span className="badge-pill badge-red">Emergency Priority</span>
                     </div>
-                    <span className="badge-pill badge-red">Emergency Priority</span>
+                    {encounterDetails.encounter.red_flag_why_this && (
+                      <div style={{ paddingLeft: '36px' }}>
+                        <WhyThisTag 
+                          explanation={encounterDetails.encounter.red_flag_why_this} 
+                          label="Why this red-flag alert?" 
+                          defaultOpen={true}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -541,6 +614,155 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                     </p>
                   </div>
 
+                  {/* FEATURE 1: AYUSH-Allopathy Cross-System Safety Note (Appears ONLY when both allopathic prescription and AYUSH assessment exist) */}
+                  {currentSummary.cross_system_safety_note && currentSummary.cross_system_safety_note.has_concern && (
+                    <div style={{
+                      padding: '20px 24px',
+                      backgroundColor: '#fffdf5',
+                      border: '1.5px solid #f59e0b',
+                      borderRadius: '16px',
+                      boxShadow: '0 4px 16px rgba(245, 158, 11, 0.08)'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
+                            backgroundColor: '#fef3c7',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#b45309'
+                          }}>
+                            <Shield size={18} />
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: '0.96rem', color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                              Cross-System Note: AYUSH-Allopathy Safety Review
+                            </div>
+                            <div style={{ fontSize: '0.78rem', color: '#b45309' }}>
+                              Physician Advisory Prompt • Integrative Cross-Reference Check
+                            </div>
+                          </div>
+                        </div>
+                        <span className="badge-pill" style={{ backgroundColor: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', fontWeight: 600 }}>
+                          For Clinical Review
+                        </span>
+                      </div>
+
+                      <div style={{ fontSize: '0.92rem', color: '#78350f', lineHeight: 1.6, fontWeight: 500, marginBottom: '12px' }}>
+                        {currentSummary.cross_system_safety_note.advisory_text}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                        {currentSummary.cross_system_safety_note.medications_involved?.map((med, mIdx) => (
+                          <span key={mIdx} className="badge-pill" style={{ backgroundColor: '#ede9fe', color: '#5b21b6', fontSize: '0.74rem' }}>
+                            Allopathic: {med}
+                          </span>
+                        ))}
+                        {currentSummary.cross_system_safety_note.ayush_parameters_involved?.map((param, pIdx) => (
+                          <span key={pIdx} className="badge-pill" style={{ backgroundColor: '#ffedd5', color: '#c2410c', fontSize: '0.74rem' }}>
+                            AYUSH: {param}
+                          </span>
+                        ))}
+                      </div>
+
+                      <WhyThisTag
+                        explanation={currentSummary.cross_system_safety_note.why_this || currentSummary.why_this_explanations?.cross_system}
+                        label="Why this cross-system note?"
+                        defaultOpen={false}
+                      />
+                    </div>
+                  )}
+
+                  {/* FEATURE 2: Longitudinal Contradiction Detection ("Discrepancy Noted") */}
+                  {currentSummary.longitudinal_discrepancies && currentSummary.longitudinal_discrepancies.length > 0 && (
+                    <div style={{
+                      padding: '20px 24px',
+                      backgroundColor: '#fff7ed',
+                      border: '1.5px solid #ea580c',
+                      borderRadius: '16px',
+                      boxShadow: '0 4px 16px rgba(234, 88, 12, 0.08)'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
+                            backgroundColor: '#ffedd5',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#c2410c'
+                          }}>
+                            <History size={18} />
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: '0.96rem', color: '#9a3412', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                              Discrepancy Noted: Longitudinal Record Reconciliation
+                            </div>
+                            <div style={{ fontSize: '0.78rem', color: '#c2410c' }}>
+                              Factual variation detected against prior consultation record. Prior record preserved.
+                            </div>
+                          </div>
+                        </div>
+                        <span className="badge-pill" style={{ backgroundColor: '#ffedd5', color: '#9a3412', border: '1px solid #fdba74', fontWeight: 600 }}>
+                          {currentSummary.longitudinal_discrepancies.length} Discrepanc{currentSummary.longitudinal_discrepancies.length === 1 ? 'y' : 'ies'} Noted
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {currentSummary.longitudinal_discrepancies.map((disc, dIdx) => (
+                          <div key={dIdx} style={{
+                            padding: '14px 16px',
+                            backgroundColor: '#fff',
+                            border: '1px solid #fed7aa',
+                            borderRadius: '12px'
+                          }}>
+                            <div style={{ fontWeight: 600, fontSize: '0.88rem', color: '#9a3412', marginBottom: '8px' }}>
+                              Field: {disc.field}
+                            </div>
+
+                            {/* Side-by-Side Comparison */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px', marginBottom: '10px' }}>
+                              <div style={{ padding: '10px 12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                <div style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--slate-gray)', textTransform: 'uppercase', marginBottom: '4px' }}>
+                                  Previously Recorded (Visit #{disc.prior_visit_token || 'Prior'})
+                                </div>
+                                <div style={{ fontSize: '0.86rem', color: 'var(--ink-black)', fontWeight: 500 }}>
+                                  {disc.prior_statement}
+                                </div>
+                              </div>
+
+                              <div style={{ padding: '10px 12px', backgroundColor: '#fef2f2', borderRadius: '8px', border: '1px solid #fecaca' }}>
+                                <div style={{ fontSize: '0.74rem', fontWeight: 600, color: '#b91c1c', textTransform: 'uppercase', marginBottom: '4px' }}>
+                                  Current Visit Statement
+                                </div>
+                                <div style={{ fontSize: '0.86rem', color: '#991b1b', fontWeight: 500 }}>
+                                  {disc.current_statement}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div style={{ fontSize: '0.82rem', color: 'var(--ink-soft)', fontStyle: 'italic', marginBottom: '4px' }}>
+                              {disc.neutral_note}
+                            </div>
+
+                            <WhyThisTag explanation={disc.why_this} label="Why this discrepancy?" />
+                          </div>
+                        ))}
+                      </div>
+
+                      {currentSummary.why_this_explanations?.discrepancies && (
+                        <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid #fed7aa' }}>
+                          <WhyThisTag explanation={currentSummary.why_this_explanations.discrepancies} label="Why these discrepancies overall?" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* 2. Chief Complaint */}
                   <div className="card-steep" style={{ padding: '20px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
@@ -561,6 +783,7 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                     <p style={{ fontSize: '1.05rem', color: 'var(--ink-black)', fontWeight: 600 }}>
                       {currentSummary.chief_complaint}
                     </p>
+                    <WhyThisTag explanation={currentSummary.why_this_explanations?.chief_complaint} />
                   </div>
 
                   {/* 3. History of Present Illness (SOCRATES) */}
@@ -583,6 +806,7 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                     <p style={{ fontSize: '0.92rem', color: 'var(--ink-black)', lineHeight: 1.6 }}>
                       {currentSummary.history_of_present_illness}
                     </p>
+                    <WhyThisTag explanation={currentSummary.why_this_explanations?.history_of_present_illness} />
                   </div>
 
                   {/* 4. Past Medical & Surgical History */}
@@ -603,8 +827,9 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                       </button>
                     </div>
                     <p style={{ fontSize: '0.92rem', color: 'var(--ink-black)', lineHeight: 1.5 }}>
-                      {currentSummary.past_medical_history}
+                      {currentSummary.past_medical_history || 'No prior chronic medical conditions recorded.'}
                     </p>
+                    <WhyThisTag explanation={currentSummary.why_this_explanations?.past_medical_history} />
                   </div>
 
                   {/* 5. Medication History */}
@@ -616,7 +841,7 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                       <button
                         onClick={() => {
                           setEditingField('medication_history');
-                          setEditValue(currentSummary.medication_history || '');
+                          setEditValue(currentSummary.medication_history || currentSummary.current_medications || '');
                         }}
                         className="btn-pill btn-pill-outline btn-pill-sm"
                       >
@@ -625,8 +850,9 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                       </button>
                     </div>
                     <p style={{ fontSize: '0.92rem', color: 'var(--ink-black)', lineHeight: 1.5 }}>
-                      {currentSummary.medication_history}
+                      {currentSummary.current_medications || currentSummary.medication_history || 'No active medications recorded.'}
                     </p>
+                    <WhyThisTag explanation={currentSummary.why_this_explanations?.current_medications} />
                   </div>
 
                   {/* 6. Allergies (Prominently Highlighted) */}
@@ -638,7 +864,7 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                       <button
                         onClick={() => {
                           setEditingField('allergies');
-                          setEditValue(currentSummary.allergies || '');
+                          setEditValue(currentSummary.allergies || currentSummary.drug_allergies || '');
                         }}
                         className="btn-pill btn-pill-outline btn-pill-sm"
                       >
@@ -647,8 +873,9 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                       </button>
                     </div>
                     <p style={{ fontSize: '0.92rem', color: 'var(--ink-black)', fontWeight: 500 }}>
-                      {currentSummary.allergies}
+                      {currentSummary.allergies || currentSummary.drug_allergies || 'No known drug allergies reported.'}
                     </p>
+                    <WhyThisTag explanation={currentSummary.why_this_explanations?.drug_allergies} />
                   </div>
 
                   {/* 7. Family & Social History */}
@@ -658,16 +885,18 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                         7a. Family History
                       </h4>
                       <p style={{ fontSize: '0.88rem', color: 'var(--ink-black)', lineHeight: 1.5 }}>
-                        {currentSummary.family_history}
+                        {currentSummary.family_history || 'No notable family history recorded.'}
                       </p>
+                      <WhyThisTag explanation={currentSummary.why_this_explanations?.family_history} />
                     </div>
                     <div className="card-steep" style={{ padding: '20px' }}>
                       <h4 style={{ color: 'var(--slate-gray)', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '6px' }}>
                         7b. Personal & Social History
                       </h4>
                       <p style={{ fontSize: '0.88rem', color: 'var(--ink-black)', lineHeight: 1.5 }}>
-                        {currentSummary.personal_social_history}
+                        {currentSummary.personal_social_history || currentSummary.personal_history || 'Standard lifestyle; no specific risk factors.'}
                       </p>
+                      <WhyThisTag explanation={currentSummary.why_this_explanations?.personal_history} />
                     </div>
                   </div>
 
@@ -677,8 +906,9 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                       8. Systematic Review of Systems (ROS)
                     </h4>
                     <p style={{ fontSize: '0.88rem', color: 'var(--ink-black)', lineHeight: 1.5 }}>
-                      {currentSummary.review_of_systems}
+                      {currentSummary.review_of_systems || 'Review of systems completed with no secondary systemic complaints flagged.'}
                     </p>
+                    <WhyThisTag explanation={currentSummary.why_this_explanations?.review_of_systems} />
                   </div>
 
                   {/* 9. Prior Investigations Summary */}
@@ -687,8 +917,9 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                       9. Prior Investigations & Scanned Documents Summary
                     </h4>
                     <p style={{ fontSize: '0.88rem', color: 'var(--ink-black)', lineHeight: 1.5 }}>
-                      {currentSummary.prior_investigations_summary}
+                      {currentSummary.prior_investigations_summary || 'No prior investigations or scanned records uploaded in this session.'}
                     </p>
+                    <WhyThisTag explanation={currentSummary.why_this_explanations?.prior_investigations_summary} />
                   </div>
 
                   {/* 10. AYUSH Dashavidha Pariksha (If applicable) */}
@@ -709,6 +940,71 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                         <div><strong>Vyayama:</strong> {currentSummary.ayush_vyayama_shakti}</div>
                         <div><strong>Vaya:</strong> {currentSummary.ayush_vaya}</div>
                       </div>
+                      <WhyThisTag explanation={currentSummary.why_this_explanations?.ayush_pariksha_summary} label="Why this AYUSH assessment?" />
+                    </div>
+                  )}
+
+                  {/* 11. AI Clinical Decision Support: Suggested Differential Diagnoses */}
+                  {currentSummary.suggested_differential_diagnoses && currentSummary.suggested_differential_diagnoses.length > 0 && (
+                    <div className="card-steep" style={{ padding: '24px', borderLeft: '4px solid #6366f1' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+                        <div>
+                          <h4 style={{ color: '#4338ca', fontSize: '0.85rem', textTransform: 'uppercase', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                            <Sparkles size={15} color="#6366f1" />
+                            <span>11. AI Suggested Differential Diagnoses (Decision Support)</span>
+                          </h4>
+                          <div style={{ fontSize: '0.78rem', color: 'var(--slate-gray)', marginTop: '3px' }}>
+                            AI-generated differential candidates for attending physician clinical verification.
+                          </div>
+                        </div>
+                        <span className="badge-pill" style={{ backgroundColor: '#e0e7ff', color: '#4338ca', fontSize: '0.72rem' }}>
+                          Clinical Decision Support
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {currentSummary.suggested_differential_diagnoses.map((diff, dIdx) => (
+                          <div key={dIdx} style={{
+                            padding: '14px 16px',
+                            backgroundColor: '#f8fafc',
+                            border: '1px solid var(--border-light)',
+                            borderRadius: '12px'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px', marginBottom: '6px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontWeight: 600, fontSize: '0.94rem', color: 'var(--ink-black)' }}>
+                                  {diff.condition}
+                                </span>
+                                {diff.icd10 && (
+                                  <span className="badge-pill badge-gray" style={{ fontSize: '0.72rem' }}>
+                                    ICD-10: {diff.icd10}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="badge-pill" style={{
+                                fontSize: '0.72rem',
+                                backgroundColor: diff.probability === 'HIGH' ? '#fef2f2' : (diff.probability === 'MODERATE' ? '#fffbeb' : '#f0fdf4'),
+                                color: diff.probability === 'HIGH' ? '#b91c1c' : (diff.probability === 'MODERATE' ? '#b45309' : '#15803d'),
+                                border: `1px solid ${diff.probability === 'HIGH' ? '#fecaca' : (diff.probability === 'MODERATE' ? '#fde68a' : '#bbf7d0')}`
+                              }}>
+                                {diff.probability} Probability
+                              </span>
+                            </div>
+
+                            <div style={{ fontSize: '0.84rem', color: 'var(--ink-soft)', lineHeight: 1.5 }}>
+                              {diff.clinical_rationale}
+                            </div>
+
+                            <WhyThisTag explanation={diff.why_this || diff.clinical_rationale} label="Why this differential?" />
+                          </div>
+                        ))}
+                      </div>
+
+                      {currentSummary.why_this_explanations?.suggested_differential_diagnoses && (
+                        <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid var(--border-light)' }}>
+                          <WhyThisTag explanation={currentSummary.why_this_explanations.suggested_differential_diagnoses} label="Why these differentials overall?" />
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

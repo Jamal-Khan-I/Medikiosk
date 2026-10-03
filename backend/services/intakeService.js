@@ -567,6 +567,29 @@ export const AYUSH_DASHAVIDHA_QUESTIONS = [
     quickOptions: ['Samagni (Balanced, comfortable digestion within 3-4 hours)', 'Tikshnagni (Very sharp appetite, burning, rapid hunger)', 'Mandagni (Sluggish digestion, bloating, heaviness after small meals)', 'Vishamagni (Irregular hunger, unpredictable digestion and gas)']
   },
   {
+    stepId: 'ayush_koshtha',
+    code: 'KOSHTHA',
+    category: 'Koshtha (Bowel & Alimentary Tract Nature)',
+    prompt: {
+      en: "How are your bowel movements and digestive elimination (Koshtha)?",
+      hi: "आपका पेट साफ होने और मल विसर्जन की प्रकृति (कोष्ठ) कैसी है?",
+      ta: "உங்கள் குடல் இயக்கம் மற்றும் மலம் கழித்தல் (கோஷ்டம்) எப்படி உள்ளது?",
+      te: "మీ జీర్ణ వ్యవస్థ మరియు మల విసర్జన స్వభావం (కోష్ఠం) ఎలా ఉంది?",
+      bn: "আপনার পেট পরিষ্কার হওয়ার প্রকৃতি (কোষ্ঠ) কেমন?",
+      mr: "तुमचे पोट साफ होण्याचे स्वरूप (कोष्ठ) कसे आहे?",
+      gu: "તમારો પેટ સાફ થવાનો સ્વભાવ (કોષ્ઠ) કેવો છે?",
+      kn: "ನಿಮ್ಮ ಮಲವಿಸರ್ಜನೆ ಮತ್ತು ಜೀರ್ಣಾಂಗ ಪ್ರವೃತ್ತಿ (ಕೋಷ್ಠ) ಹೇಗಿದೆ?",
+      ml: "നിങ്ങളുടെ ദഹന-ശോധന സ്വഭാവം (കോഷ്ഠം) എങ്ങനെയുണ്ട്?",
+      pa: "ਤੁਹਾਡਾ ਪੇਟ ਸਾਫ਼ ਹੋਣ ਦੀ ਪ੍ਰਕਿਰਤੀ (ਕੋਸ਼ਠ) ਕਿਹੋ ਜਿਹੀ ਹੈ?"
+    },
+    inputType: 'select_or_voice',
+    quickOptions: [
+      'Mridu Koshtha (Soft/easy bowels, tendency towards loose stools or diarrhea)',
+      'Madhyama Koshtha (Balanced, regular daily bowel movements without difficulty)',
+      'Krura Koshtha (Hard stools, constipation tendency, requires strong stimulus)'
+    ]
+  },
+  {
     stepId: 'ayush_vyayama_shakti',
     code: 'VYAYAMA_SHAKTI',
     category: 'Vyayama Shakti (Physical Endurance & Exercise Capacity)',
@@ -625,6 +648,90 @@ export const AYUSH_DASHAVIDHA_QUESTIONS = [
   }
 ];
 
+export const SENSITIVE_HISTORY_QUESTIONS = [
+  {
+    stepId: 'personal_history',
+    code: 'PERSONAL_HISTORY',
+    category: 'Personal History (Substance & Habits)',
+    isSensitive: true,
+    sensitiveCategory: 'Substance Use',
+    prompt: {
+      en: "Do you consume tobacco (smoking/chewing) or alcohol?",
+      hi: "क्या आप तंबाकू (धूम्रपान/गुटखा) या शराब का सेवन करते हैं?",
+      ta: "நீங்கள் புகையிலை (புகைபிடித்தல்/மெல்லுதல்) அல்லது மது அருந்துகிறீர்களா?",
+      te: "మీరు పొగాకు (ధూమపానం/నమలడం) లేదా మద్యం సేవిస్తారా?",
+      bn: "আপনি কি তামাক (ধূমপান/জর্দা) বা অ্যালকোহল গ্রহণ করেন?",
+      mr: "तुम्ही तंबाखू (धूम्रपान/गुटखा) किंवा मद्यपान करता का?",
+      gu: "શું તમે તમાકુ (ધૂમ્રપાન/ગુટખા) કે આલ્કોહોલનું સેવન કરો છો?",
+      kn: "ನೀವು ತಂಬಾಕು (ಧೂಮಪಾನ/ಅಗಿಯುವುದು) ಅಥವಾ ಮದ್ಯಪಾನ ಮಾಡುತ್ತೀರಾ?",
+      ml: "നിങ്ങൾ പുകയിലയോ മദ്യമോ ഉപയോഗിക്കാറുണ്ടോ?",
+      pa: "ਕੀ ਤੁਸੀਂ ਤੰਬਾਕੂ ਜਾਂ ਸ਼ਰਾਬ ਦਾ ਸੇਵਨ ਕਰਦੇ ਹੋ?"
+    },
+    inputType: 'select_or_voice',
+    quickOptions: [
+      'Non-smoker / No alcohol use',
+      'Occasional / Social alcohol use',
+      'Daily cigarette / bidi smoking',
+      'Smokeless tobacco / Gutkha / Khaini use',
+      'Past user (Quit > 1 year ago)'
+    ]
+  },
+  {
+    stepId: 'review_of_systems_mental',
+    code: 'MENTAL_HEALTH',
+    category: 'Review of Systems (Mental Well-being & Mood)',
+    isSensitive: true,
+    sensitiveCategory: 'Mental Health',
+    prompt: {
+      en: "Over the past 2 weeks, have you experienced persistent low mood, anxiety, or sleep disturbances?",
+      hi: "पिछले 2 हफ्तों में, क्या आपने लगातार उदासी, घबराहट या नींद में परेशानी महसूस की है?",
+      ta: "கடந்த 2 வாரங்களில், உங்களுக்கு மனச்சோர்வு, பதட்டம் அல்லது தூக்கமின்மை ஏற்பட்டுள்ளதா?",
+      te: "గత 2 వారాలుగా, మీకు మానసిక నిరాశ, ఆందోళన లేదా నిద్రలేమి సమస్యలు ఎదురవుతున్నాయా?",
+      bn: "বিগত ২ সপ্তাহে, আপনি কি বিষণ্ণতা, উদ্বেগ বা ঘুমের সমস্যা অনুভব করছেন?",
+      mr: "गेल्या २ आठवड्यात, तुम्हाला सतत नैराश्य, चिंता किंवा झोपेचा त्रास जाणवला आहे का?",
+      gu: "છેલ્લા ૨ અઠવાડિયામાં, શું તમે સતત ઉદાસી, ચિંતા અથવા ઊંઘમાં ખલેલ અનુભવી છે?",
+      kn: "ಕಳೆದ 2 ವಾರಗಳಲ್ಲಿ, ನೀವು ನಿರಂತರ ಖಿನ್ನತೆ, ಆತಂಕ ಅಥವಾ ನಿದ್ರಾಹೀನತೆಯನ್ನು ಅನುಭವಿಸಿದ್ದೀರಾ?",
+      ml: "കഴിഞ്ഞ 2 ആഴ്ചയായി കടുത്ത വിഷാദമോ ഉത്കണ്ഠയോ ഉറക്കക്കുറവോ അനുഭവപ്പെടുന്നുണ്ടോ?",
+      pa: "ਪਿਛਲੇ 2 ਹਫ਼ਤਿਆਂ ਵਿੱਚ, ਕੀ ਤੁਸੀਂ ਉਦਾਸੀ, ਘਬਰਾਹਟ ਜਾਂ ਨੀਂਦ ਦੀ ਸਮੱਸਿਆ ਮਹਿਸੂਸ ਕੀਤੀ ਹੈ?"
+    },
+    inputType: 'select_or_voice',
+    quickOptions: [
+      'No emotional distress or anxiety',
+      'Mild occasional stress / worry',
+      'Persistent anxiety or panic feelings',
+      'Depressed mood / Loss of interest',
+      'Significant sleep disturbance / insomnia'
+    ]
+  },
+  {
+    stepId: 'review_of_systems_reproductive',
+    code: 'REPRODUCTIVE_HEALTH',
+    category: 'Review of Systems (Reproductive & Genitourinary)',
+    isSensitive: true,
+    sensitiveCategory: 'Reproductive Health',
+    prompt: {
+      en: "Do you have any private reproductive, menstrual, or urinary concerns to disclose?",
+      hi: "क्या आपको कोई निजी प्रजनन, मासिक धर्म या मूत्र संबंधी समस्या है?",
+      ta: "மாதவிடாய், பிறப்புறுப்பு அல்லது சிறுநீர் கழிப்பதில் ஏதேனும் அந்தரங்கப் பிரச்சனைகள் உள்ளதா?",
+      te: "మీకు బహిష్టు, పునరుత్పత్తి లేదా మూత్ర సంబంధిత వ్యక్తిగత సమస్యలు ఏవైనా ఉన్నాయా?",
+      bn: "মাসিক, প্রজনন বা প্রস্রাব সংক্রান্ত কোনো ব্যক্তিগত সমস্যা রয়েছে কি?",
+      mr: "मासिक पाळी, प्रजनन किंवा लघवीसंबंधी काही खाजगी तक्रार आहे का?",
+      gu: "માસિક ધર્મ, પ્રજનન અથવા પેશાબ સંબંધિત કોઈ અંગત તકલીફ છે?",
+      kn: "ಮುಟ್ಟು, ಸಂತಾನೋತ್ಪತ್ತಿ ಅಥವಾ ಮೂತ್ರ ವಿಸರ್ಜನೆಗೆ ಸಂಬಂಧಿಸಿದ ಯಾವುದೇ ಖಾಸಗಿ ಸಮಸ್ಯೆ ಇದೆಯೇ?",
+      ml: "ആർത്തവ സംബന്ധമായോ മൂത്രാശയ സംബന്ധമായോ എന്തെങ്കിലും സ്വകാര്യ ബുദ്ധിമുട്ടുകൾ ഉണ്ടോ?",
+      pa: "ਕੀ ਮਾਹਵਾਰੀ ਜਾਂ ਪਿਸ਼ਾਬ ਨਾਲ ਸੰਬੰਧਿਤ ਕੋਈ ਨਿੱਜੀ ਸਮੱਸਿਆ ਹੈ?"
+    },
+    inputType: 'select_or_voice',
+    quickOptions: [
+      'None / No reproductive or urinary concerns',
+      'Irregular or painful menstrual cycles',
+      'Burning urination / Urinary frequency',
+      'Pelvic pain or discomfort',
+      'Currently pregnant / Postpartum'
+    ]
+  }
+];
+
 export function getAdaptiveQuestions(complaintText = '', mode = 'STANDARD_SOCRATES') {
   const isAyush = mode === 'AYUSH_DASHAVIDHA';
   const lower = complaintText.toLowerCase();
@@ -664,7 +771,9 @@ export function getAdaptiveQuestions(complaintText = '', mode = 'STANDARD_SOCRAT
   };
 
   const questions = [ccQuestion, ...socratesTree.questions];
-  const baseQuestions = isAyush ? [...questions, ...AYUSH_DASHAVIDHA_QUESTIONS] : questions;
+  const baseQuestions = isAyush 
+    ? [...questions, ...AYUSH_DASHAVIDHA_QUESTIONS, ...SENSITIVE_HISTORY_QUESTIONS] 
+    : [...questions, ...SENSITIVE_HISTORY_QUESTIONS];
 
   // Enrich with 22-language prompts
   const enrichedQuestions = baseQuestions.map(q => {
@@ -756,6 +865,85 @@ export function generateStructuredSummary(patient, answers, extractedEntities = 
     }
   }
 
+  // Default differential diagnoses if none exist yet
+  const defaultDifferentials = [];
+  const normalizedCC = (cc || '').toLowerCase();
+  if (normalizedCC.includes('chest') || normalizedCC.includes('heart') || (answers.socrates_site || '').toLowerCase().includes('chest')) {
+    defaultDifferentials.push(
+      { condition: 'Atypical Chest Pain / Angina Pectoris', icd10: 'I20.9', probability: 'MODERATE', clinical_rationale: 'Reported localized chest discomfort requiring ischemic workup.', why_this: `Triggered by complaint of "${cc || 'chest discomfort'}" localized to ${answers.socrates_site || 'chest region'}.` },
+      { condition: 'Gastroesophageal Reflux Disease (GERD)', icd10: 'K21.9', probability: 'MODERATE', clinical_rationale: 'Retrosternal discomfort exacerbated by meals or posture.', why_this: 'Common masquerader of retrosternal discomfort without acute hemodynamic instability.' },
+      { condition: 'Musculoskeletal Chest Wall Strain', icd10: 'M79.1', probability: 'LOW', clinical_rationale: 'Localized chest wall tenderness without radiation.', why_this: 'Triggered when chest pain is localized without systemic red flags.' }
+    );
+  } else if (normalizedCC.includes('fever') || normalizedCC.includes('temperature') || normalizedCC.includes('bukhar')) {
+    defaultDifferentials.push(
+      { condition: 'Acute Febrile Illness of Unspecified Etiology', icd10: 'R50.9', probability: 'HIGH', clinical_rationale: 'Active pyrexia warranting complete hemogram and pathogen screening.', why_this: `Directly derived from stated fever symptoms: "${cc}".` },
+      { condition: 'Upper Respiratory Tract Infection', icd10: 'J06.9', probability: 'MODERATE', clinical_rationale: 'Acute fever with associated catarrhal symptoms.', why_this: 'Common outpatient febrile presentation in community OPD.' }
+    );
+  } else if (normalizedCC.includes('headache') || normalizedCC.includes('sir dard')) {
+    defaultDifferentials.push(
+      { condition: 'Tension-Type Headache', icd10: 'G44.2', probability: 'HIGH', clinical_rationale: 'Bilateral pressing cephalalgia without focal neurological deficit.', why_this: `Derived from reported head pain (${answers.socrates_severity || 5}/10 severity).` },
+      { condition: 'Migraine without Aura', icd10: 'G43.0', probability: 'MODERATE', clinical_rationale: 'Recurrent or throbbing cephalalgia.', why_this: 'Considered for severe or episodic headache complaints.' }
+    );
+  } else if (normalizedCC.includes('stomach') || normalizedCC.includes('abdomen') || normalizedCC.includes('pet dard')) {
+    defaultDifferentials.push(
+      { condition: 'Acute Functional Dyspepsia / Gastritis', icd10: 'K29.7', probability: 'HIGH', clinical_rationale: 'Epigastric distress or abdominal pain without peritoneal signs.', why_this: `Derived from abdominal complaint: "${cc}".` },
+      { condition: 'Acute Gastroenteritis', icd10: 'A09', probability: 'MODERATE', clinical_rationale: 'Abdominal cramping with gastrointestinal symptoms.', why_this: 'Common presentation for acute abdominal/bowel complaints.' }
+    );
+  } else {
+    defaultDifferentials.push(
+      { condition: 'General Outpatient Clinical Presentation', icd10: 'Z71.9', probability: 'HIGH', clinical_rationale: 'Standard outpatient consultation for reported symptom complex.', why_this: `Derived from patient primary consultation complaint: "${cc || 'General Checkup'}".` }
+    );
+  }
+
+  let rosSummaryText = answers.review_of_systems || null;
+  const rosParts = [];
+  if (answers.review_of_systems) rosParts.push(answers.review_of_systems);
+  if (answers.review_of_systems_mental && answers.review_of_systems_mental !== 'No emotional distress or anxiety') {
+    rosParts.push(`Mental well-being: ${answers.review_of_systems_mental}`);
+  }
+  if (answers.review_of_systems_reproductive && answers.review_of_systems_reproductive !== 'None / No reproductive or urinary concerns') {
+    rosParts.push(`Reproductive/GU: ${answers.review_of_systems_reproductive}`);
+  }
+  if (rosParts.length > 0) {
+    rosSummaryText = rosParts.join('; ');
+  }
+
+  const whyThisExplanations = {
+    chief_complaint: cc
+      ? `Patient explicitly stated primary concern during intake dialogue: "${cc}".`
+      : 'No primary complaint entered; general clinical intake recorded.',
+    history_of_present_illness: socratesDetails.length > 0
+      ? `Synthesized directly from patient responses across SOCRATES clinical dimensions: ${socratesDetails.join('; ')}.`
+      : (cc ? `Derived from patient primary complaint disclosure: "${cc}".` : 'No detailed HPI questionnaire data recorded.'),
+    current_medications: currentMeds
+      ? `Extracted from ${extractedEntities.filter(e => e.category === 'MEDICATION').length > 0 ? 'digitized prescription document(s)' : 'patient medication history response'}: ${currentMeds}.`
+      : 'No active medications were reported by the patient or found in uploaded documents.',
+    drug_allergies: answers.drug_allergies
+      ? `Directly disclosed by patient during intake allergy screen: "${answers.drug_allergies}".`
+      : 'Patient disclosed no known adverse drug reactions or allergies during intake questionnaire.',
+    past_medical_history: answers.past_medical_history
+      ? `Disclosed by patient in chronic illness questionnaire: "${answers.past_medical_history}".`
+      : 'No prior chronic medical conditions or hospitalizations disclosed.',
+    family_history: answers.family_history
+      ? `Reported in family medical history: "${answers.family_history}".`
+      : 'No notable family history of hereditary disease reported.',
+    personal_history: (answers.personal_history || answers.ayush_ahara_vihara)
+      ? `Reported in lifestyle & personal history: "${answers.personal_history || answers.ayush_ahara_vihara}".`
+      : 'Standard lifestyle parameters; no specific risk factors noted.',
+    review_of_systems: rosSummaryText
+      ? `Recorded from systematic organ-system review & sensitive topic screen: "${rosSummaryText}".`
+      : 'Review of systems completed with no secondary systemic complaints flagged.',
+    prior_investigations_summary: priorInvestigations
+      ? `Synthesized from ${extractedEntities.length} digitized entity values extracted from patient's uploaded records and lab reports.`
+      : 'No previous diagnostic reports or lab documents uploaded during this session.',
+    suggested_differential_diagnoses: cc
+      ? `Generated by clinical decision support mapping primary complaint "${cc}"${answers.socrates_site ? ` at site "${answers.socrates_site}"` : ''} against diagnostic criteria.`
+      : 'Diagnostic considerations awaiting physician clinical examination.',
+    ayush_pariksha_summary: (answers.ayush_prakriti || answers.ayush_ahara_shakti)
+      ? `Derived from completed Dashavidha Pariksha assessment (Prakriti: ${answers.ayush_prakriti || 'N/A'}, Agni: ${answers.ayush_ahara_shakti || 'N/A'}).`
+      : 'Dashavidha Pariksha assessment was not administered in standard allopathic mode.'
+  };
+
   return {
     patient_demographics_summary: demographicsSummary,
     chief_complaint: cc,
@@ -775,8 +963,12 @@ export function generateStructuredSummary(patient, answers, extractedEntities = 
     current_medications: currentMeds,
     family_history: answers.family_history || null,
     personal_history: answers.personal_history || answers.ayush_ahara_vihara || null,
-    review_of_systems: answers.review_of_systems || null,
+    review_of_systems: rosSummaryText,
+    review_of_systems_mental: answers.review_of_systems_mental || null,
+    review_of_systems_reproductive: answers.review_of_systems_reproductive || null,
     prior_investigations_summary: priorInvestigations,
+    suggested_differential_diagnoses: defaultDifferentials,
+    why_this_explanations: whyThisExplanations,
     // AYUSH Dashavidha Pariksha fields (only populated if actually provided)
     ayush_prakriti: answers.ayush_prakriti || null,
     ayush_vikriti: answers.ayush_vikriti || null,
@@ -786,6 +978,7 @@ export function generateStructuredSummary(patient, answers, extractedEntities = 
     ayush_satmya: answers.ayush_satmya || null,
     ayush_satva: answers.ayush_satva || null,
     ayush_ahara_shakti: answers.ayush_ahara_shakti || null,
+    ayush_koshtha: answers.ayush_koshtha || null,
     ayush_vyayama_shakti: answers.ayush_vyayama_shakti || null,
     ayush_vaya: answers.ayush_vaya || null,
     ayush_ahara_vihara: answers.ayush_ahara_vihara || null,
