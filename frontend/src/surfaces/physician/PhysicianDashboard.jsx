@@ -411,6 +411,13 @@ export default function PhysicianDashboard({ onExitDashboard }) {
   const currentEntities = encounterDetails?.extracted_entities || [];
   const currentAudits = encounterDetails?.audit_logs || [];
 
+  // Dynamic clinical summary section numbering (handles conditional AYUSH and Diff Diag sections seamlessly)
+  const hasAyush = Boolean(currentSummary?.ayush_prakriti);
+  const hasDiffDiag = Boolean(currentSummary?.suggested_differential_diagnoses && currentSummary.suggested_differential_diagnoses.length > 0);
+  const ayushSecNum = 10;
+  const diffDiagSecNum = hasAyush ? 11 : 10;
+  const treatmentSecNum = (hasAyush ? 1 : 0) + (hasDiffDiag ? 1 : 0) + 10;
+
   // Age display calculation
   const getAccurateAge = (patient) => {
     if (patient?.age) return patient.age;
@@ -1104,11 +1111,11 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                     <WhyThisTag explanation={currentSummary.why_this_explanations?.prior_investigations_summary} />
                   </div>
 
-                  {/* 10. AYUSH Dashavidha Pariksha (If applicable) */}
+                  {/* AYUSH Dashavidha Pariksha (If applicable) */}
                   {currentSummary.ayush_prakriti && (
                     <div className="card-steep-peach" style={{ padding: '24px' }}>
                       <h4 style={{ color: 'var(--sienna-brown)', marginBottom: '12px' }}>
-                        10. AYUSH Dashavidha Pariksha & Ahara-Vihara
+                        {ayushSecNum}. AYUSH Dashavidha Pariksha &amp; Ahara-Vihara
                       </h4>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', fontSize: '0.84rem', color: 'var(--sienna-brown)' }}>
                         <div><strong>Prakriti:</strong> {currentSummary.ayush_prakriti}</div>
@@ -1126,35 +1133,35 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                     </div>
                   )}
 
-                  {/* 11. AI Clinical Decision Support: Suggested Differential Diagnoses */}
+                  {/* AI Clinical Decision Support: Suggested Differential Diagnoses */}
                   {currentSummary.suggested_differential_diagnoses && currentSummary.suggested_differential_diagnoses.length > 0 && (
-                    <div className="card-steep" style={{ padding: '24px', borderLeft: '4px solid #6366f1' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+                    <div className="card-steep" style={{ padding: '20px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
                         <div>
-                          <h4 style={{ color: '#4338ca', fontSize: '0.85rem', textTransform: 'uppercase', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
-                            <Sparkles size={15} color="#6366f1" />
-                            <span>11. AI Suggested Differential Diagnoses (Decision Support)</span>
+                          <h4 style={{ color: 'var(--slate-gray)', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Sparkles size={14} color="var(--slate-gray)" />
+                            <span>{diffDiagSecNum}. AI Suggested Differential Diagnoses (Decision Support)</span>
                           </h4>
-                          <div style={{ fontSize: '0.78rem', color: 'var(--slate-gray)', marginTop: '3px' }}>
+                          <p style={{ fontSize: '0.82rem', color: 'var(--ink-soft)', margin: 0 }}>
                             AI-generated differential candidates for attending physician clinical verification.
-                          </div>
+                          </p>
                         </div>
-                        <span className="badge-pill" style={{ backgroundColor: '#e0e7ff', color: '#4338ca', fontSize: '0.72rem' }}>
+                        <span className="badge-pill badge-gray" style={{ fontSize: '0.72rem' }}>
                           Clinical Decision Support
                         </span>
                       </div>
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         {currentSummary.suggested_differential_diagnoses.map((diff, dIdx) => (
                           <div key={dIdx} style={{
                             padding: '14px 16px',
-                            backgroundColor: '#f8fafc',
+                            backgroundColor: 'var(--fog-white)',
                             border: '1px solid var(--border-light)',
-                            borderRadius: '12px'
+                            borderRadius: 'var(--radius-card, 12px)'
                           }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px', marginBottom: '6px' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ fontWeight: 600, fontSize: '0.94rem', color: 'var(--ink-black)' }}>
+                                <span style={{ fontWeight: 600, fontSize: '0.92rem', color: 'var(--ink-black)' }}>
                                   {diff.condition}
                                 </span>
                                 {diff.icd10 && (
@@ -1190,39 +1197,20 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                     </div>
                   )}
 
-                  {/* 12. PHYSICIAN TREATMENT PLAN, PRESCRIPTIONS & CONSULTATION NOTES */}
-                  <div className="card-steep" style={{
-                    padding: '26px',
-                    border: '2px solid #3b82f6',
-                    borderRadius: '18px',
-                    backgroundColor: '#fbfdff',
-                    boxShadow: '0 4px 20px rgba(59, 130, 246, 0.08)'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{
-                          width: '36px',
-                          height: '36px',
-                          borderRadius: '10px',
-                          backgroundColor: '#eff6ff',
-                          color: '#2563eb',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}>
-                          <ClipboardList size={20} />
-                        </div>
-                        <div>
-                          <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e3a8a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span>12. Physician Treatment Plan &amp; Rx Orders</span>
-                            <span className="badge-pill" style={{ backgroundColor: '#dbeafe', color: '#1d4ed8', fontSize: '0.72rem' }}>
-                              Official OPD Consultation
-                            </span>
-                          </h3>
-                          <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>
-                            Document physical findings, issue new prescription medications, and specify follow-up care.
-                          </div>
-                        </div>
+                  {/* PHYSICIAN TREATMENT PLAN, PRESCRIPTIONS & CONSULTATION NOTES */}
+                  <div className="card-steep" style={{ padding: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+                      <div>
+                        <h4 style={{ color: 'var(--slate-gray)', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <ClipboardList size={15} color="var(--slate-gray)" />
+                          <span>{treatmentSecNum}. Physician Treatment Plan &amp; Rx Orders</span>
+                          <span className="badge-pill badge-gray" style={{ fontSize: '0.7rem' }}>
+                            Official OPD Consultation
+                          </span>
+                        </h4>
+                        <p style={{ fontSize: '0.82rem', color: 'var(--ink-soft)', margin: 0 }}>
+                          Document physical findings, issue new prescription medications, and specify follow-up care.
+                        </p>
                       </div>
 
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -1230,7 +1218,6 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                           type="button"
                           onClick={handlePrintPrescription}
                           className="btn-pill btn-pill-outline btn-pill-sm"
-                          style={{ borderColor: '#cbd5e1', color: '#334155' }}
                           title="Print / Save OPD Prescription"
                         >
                           <Printer size={14} />
@@ -1241,7 +1228,6 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                           onClick={handleSaveTreatmentPlan}
                           disabled={isSavingTreatment}
                           className="btn-pill btn-pill-primary btn-pill-sm"
-                          style={{ backgroundColor: '#2563eb', borderColor: '#2563eb' }}
                         >
                           <Save size={14} />
                           <span>{isSavingTreatment ? 'Saving...' : 'Save Treatment Plan'}</span>
@@ -1268,8 +1254,8 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                     )}
 
                     {/* Part A: Clinical Examination Findings & Doctor's Notes */}
-                    <div style={{ marginBottom: '20px' }}>
-                      <label style={{ display: 'block', fontSize: '0.86rem', fontWeight: 600, color: '#1e293b', marginBottom: '6px' }}>
+                    <div style={{ marginBottom: '18px' }}>
+                      <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--ink-black)', marginBottom: '6px' }}>
                         Clinical Notes &amp; Physical Examination Findings:
                       </label>
                       <textarea
@@ -1283,11 +1269,11 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                     </div>
 
                     {/* Part B: Rx Prescriptions Builder */}
-                    <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ marginBottom: '18px', padding: '16px', backgroundColor: 'var(--fog-white)', borderRadius: 'var(--radius-card, 12px)', border: '1px solid var(--border-light)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <Pill size={18} color="#2563eb" />
-                          <strong style={{ fontSize: '0.94rem', color: '#1e293b' }}>
+                          <Pill size={16} color="var(--ink-soft)" />
+                          <strong style={{ fontSize: '0.88rem', color: 'var(--ink-black)' }}>
                             New Prescription Medications (Rx)
                           </strong>
                           <span className="badge-pill badge-gray" style={{ fontSize: '0.72rem' }}>
@@ -1296,7 +1282,7 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                         </div>
                         {/* Quick Add Templates */}
                         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: '0.74rem', color: '#64748b', alignSelf: 'center' }}>Quick add:</span>
+                          <span style={{ fontSize: '0.74rem', color: 'var(--slate-gray)', alignSelf: 'center' }}>Quick add:</span>
                           <button
                             type="button"
                             onClick={() => handleAddTemplateMed('Paracetamol 650mg', '1 tab', '1-0-1 (SOS)', '3 days', 'After food')}
@@ -1333,21 +1319,21 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                               alignItems: 'center',
                               justifyContent: 'space-between',
                               padding: '10px 14px',
-                              backgroundColor: '#f8fafc',
-                              border: '1px solid #e2e8f0',
+                              backgroundColor: 'var(--paper-white)',
+                              border: '1px solid var(--border-light)',
                               borderRadius: '10px',
                               flexWrap: 'wrap',
                               gap: '8px'
                             }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <span style={{ fontWeight: 700, color: '#2563eb', fontSize: '0.85rem' }}>#{idx + 1}</span>
+                                <span style={{ fontWeight: 700, color: 'var(--ink-soft)', fontSize: '0.85rem' }}>#{idx + 1}</span>
                                 <div>
-                                  <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>{rx.name}</strong>
-                                  <span style={{ fontSize: '0.82rem', color: '#64748b', marginLeft: '8px' }}>
+                                  <strong style={{ fontSize: '0.9rem', color: 'var(--ink-black)' }}>{rx.name}</strong>
+                                  <span style={{ fontSize: '0.82rem', color: 'var(--slate-gray)', marginLeft: '8px' }}>
                                     ({rx.dosage}) • <strong>{rx.frequency}</strong> • {rx.duration}
                                   </span>
                                   {rx.instructions && (
-                                    <span style={{ fontSize: '0.78rem', color: '#0369a1', backgroundColor: '#e0f2fe', padding: '2px 8px', borderRadius: '6px', marginLeft: '8px' }}>
+                                    <span className="badge-pill badge-gray" style={{ fontSize: '0.74rem', marginLeft: '8px' }}>
                                       {rx.instructions}
                                     </span>
                                   )}
@@ -1356,7 +1342,7 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                               <button
                                 type="button"
                                 onClick={() => handleRemovePrescription(rx.id || idx)}
-                                style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', padding: '4px' }}
+                                style={{ background: 'none', border: 'none', color: 'var(--alert-red-bright)', cursor: 'pointer', padding: '4px' }}
                                 title="Remove medication"
                               >
                                 <Trash2 size={16} />
@@ -1365,7 +1351,7 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                           ))}
                         </div>
                       ) : (
-                        <div style={{ padding: '14px', textAlign: 'center', fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic', marginBottom: '14px' }}>
+                        <div style={{ padding: '14px', textAlign: 'center', fontSize: '0.82rem', color: 'var(--slate-gray)', fontStyle: 'italic', marginBottom: '14px' }}>
                           No new medications prescribed yet. Add medications below or click one of the quick-add buttons above.
                         </div>
                       )}
@@ -1377,11 +1363,12 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                         gap: '8px',
                         alignItems: 'end',
                         padding: '12px',
-                        backgroundColor: '#f1f5f9',
-                        borderRadius: '10px'
+                        backgroundColor: 'var(--paper-white)',
+                        borderRadius: '10px',
+                        border: '1px solid var(--border-light)'
                       }}>
                         <div>
-                          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--slate-gray)', marginBottom: '4px' }}>
                             Medicine Name
                           </label>
                           <input
@@ -1395,7 +1382,7 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                           />
                         </div>
                         <div>
-                          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--slate-gray)', marginBottom: '4px' }}>
                             Dosage / Form
                           </label>
                           <input
@@ -1408,7 +1395,7 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                           />
                         </div>
                         <div>
-                          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--slate-gray)', marginBottom: '4px' }}>
                             Frequency
                           </label>
                           <select
@@ -1427,7 +1414,7 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                           </select>
                         </div>
                         <div>
-                          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--slate-gray)', marginBottom: '4px' }}>
                             Duration
                           </label>
                           <input
@@ -1440,7 +1427,7 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                           />
                         </div>
                         <div>
-                          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--slate-gray)', marginBottom: '4px' }}>
                             Instructions
                           </label>
                           <select
@@ -1471,7 +1458,7 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                     {/* Part C: Diagnostic Lab Orders & Lifestyle Advice */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '16px' }}>
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>
+                        <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--ink-black)', marginBottom: '4px' }}>
                           Diagnostic Lab Orders / Investigations:
                         </label>
                         <input
@@ -1484,7 +1471,7 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                         />
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>
+                        <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--ink-black)', marginBottom: '4px' }}>
                           Dietary &amp; Lifestyle Advice:
                         </label>
                         <input
@@ -1499,8 +1486,8 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                     </div>
 
                     {/* Part D: Follow-up & Review Instructions */}
-                    <div style={{ marginBottom: '16px' }}>
-                      <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>
+                    <div style={{ marginBottom: '18px' }}>
+                      <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--ink-black)', marginBottom: '4px' }}>
                         Follow-up &amp; Review Instructions:
                       </label>
                       <input
@@ -1520,7 +1507,7 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                         onClick={handleSaveTreatmentPlan}
                         disabled={isSavingTreatment}
                         className="btn-pill btn-pill-primary"
-                        style={{ backgroundColor: '#2563eb', borderColor: '#2563eb', padding: '10px 24px' }}
+                        style={{ padding: '10px 24px' }}
                       >
                         <Save size={16} />
                         <span>{isSavingTreatment ? 'Saving Treatment Plan...' : 'Save & Update Patient Record'}</span>
