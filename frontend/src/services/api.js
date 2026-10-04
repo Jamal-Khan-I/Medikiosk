@@ -251,6 +251,13 @@ class ApiClient {
     });
   }
 
+  saveTreatmentPlan(encounterId, treatmentPayload) {
+    return this.request(`/physician/encounters/${encounterId}/treatment`, {
+      method: 'PUT',
+      body: JSON.stringify(treatmentPayload)
+    });
+  }
+
   confirmEncounter(encounterId) {
     return this.request(`/physician/encounters/${encounterId}/confirm`, {
       method: 'POST'

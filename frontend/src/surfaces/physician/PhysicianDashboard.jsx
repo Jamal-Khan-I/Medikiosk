@@ -24,7 +24,13 @@ import {
   Shield, 
   HeartPulse,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Plus,
+  Pill,
+  ClipboardList,
+  Printer,
+  X,
+  Copy
 } from 'lucide-react';
 import { api } from '../../services/api';
 
@@ -116,6 +122,27 @@ export default function PhysicianDashboard({ onExitDashboard }) {
   const [activeTab, setActiveTab] = useState('summary'); // 'summary' | 'past_visits' | 'documents' | 'audit' | 'fhir'
   const [patientToDelete, setPatientToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Sign-Off & FHIR Presentation States
+  const [signOffSuccess, setSignOffSuccess] = useState(false);
+  const [showRawFhirJson, setShowRawFhirJson] = useState(false);
+  const [jsonCopied, setJsonCopied] = useState(false);
+
+  // Treatment Plan, Prescriptions & Clinical Notes States
+  const [treatmentNotes, setTreatmentNotes] = useState('');
+  const [prescriptions, setPrescriptions] = useState([]);
+  const [investigationsOrdered, setInvestigationsOrdered] = useState('');
+  const [lifestyleAdvice, setLifestyleAdvice] = useState('');
+  const [followUpInstructions, setFollowUpInstructions] = useState('');
+  const [isSavingTreatment, setIsSavingTreatment] = useState(false);
+  const [treatmentSaveSuccess, setTreatmentSaveSuccess] = useState(false);
+
+  // New Prescription item entry row
+  const [newMedName, setNewMedName] = useState('');
+  const [newMedDosage, setNewMedDosage] = useState('');
+  const [newMedFrequency, setNewMedFrequency] = useState('1-0-1');
+  const [newMedDuration, setNewMedDuration] = useState('5 days');
+  const [newMedInstructions, setNewMedInstructions] = useState('After food');
 
   // Responsive View State for Tablet & Mobile (Stacked cards vs details)
   const [isMobileScreen, setIsMobileScreen] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 1024);
@@ -231,7 +258,12 @@ export default function PhysicianDashboard({ onExitDashboard }) {
     try {
       const res = await api.getEncounterDetails(id);
       setEncounterDetails(res);
-      setGeneratedFhirBundle(null);
+      if (res?.encounter?.fhir_bundle) {
+        setGeneratedFhirBundle(res.encounter.fhir_bundle);
+      }
+      if (res?.encounter?.abdm_ack) {
+        setAbdmAck(res.encounter.abdm_ack);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -244,6 +276,30 @@ export default function PhysicianDashboard({ onExitDashboard }) {
       fetchDetails(selectedEncounterId);
     }
   }, [selectedEncounterId]);
+
+  // Sync treatment fields whenever active encounter summary changes
+  useEffect(() => {
+    if (encounterDetails?.summary) {
+      const s = encounterDetails.summary;
+      setTreatmentNotes(s.clinical_notes || s.treatment_notes || '');
+      setPrescriptions(Array.isArray(s.prescriptions) ? s.prescriptions : (s.prescriptions ? [s.prescriptions] : []));
+      setInvestigationsOrdered(s.investigations_ordered || '');
+      setLifestyleAdvice(s.dietary_lifestyle_advice || '');
+      setFollowUpInstructions(s.follow_up_instructions || '');
+    } else {
+      setTreatmentNotes('');
+      setPrescriptions([]);
+      setInvestigationsOrdered('');
+      setLifestyleAdvice('');
+      setFollowUpInstructions('');
+    }
+    if (encounterDetails?.encounter?.fhir_bundle) {
+      setGeneratedFhirBundle(encounterDetails.encounter.fhir_bundle);
+    }
+    if (encounterDetails?.encounter?.abdm_ack) {
+      setAbdmAck(encounterDetails.encounter.abdm_ack);
+    }
+  }, [encounterDetails]);
 
   // Handle Inline Summary Edit (Persisted in DB & Logged in Audit Trail)
   const handleSaveFieldEdit = async () => {
@@ -258,16 +314,87 @@ export default function PhysicianDashboard({ onExitDashboard }) {
     }
   };
 
+  // Save Treatment Plan, Prescriptions, and Doctor Notes
+  const handleSaveTreatmentPlan = async () => {
+    if (!selectedEncounterId) return;
+    setIsSavingTreatment(true);
+    setTreatmentSaveSuccess(false);
+    try {
+      await api.saveTreatmentPlan(selectedEncounterId, {
+        clinical_notes: treatmentNotes,
+        prescriptions: prescriptions,
+        investigations_ordered: investigationsOrdered,
+        dietary_lifestyle_advice: lifestyleAdvice,
+        follow_up_instructions: followUpInstructions
+      });
+      setTreatmentSaveSuccess(true);
+      fetchDetails(selectedEncounterId);
+      setTimeout(() => setTreatmentSaveSuccess(false), 3500);
+    } catch (e) {
+      alert('Error saving treatment plan: ' + e.message);
+    } finally {
+      setIsSavingTreatment(false);
+    }
+  };
+
+  const handleAddPrescription = () => {
+    if (!newMedName.trim()) return;
+    const newRx = {
+      id: `rx_${Date.now()}`,
+      name: newMedName.trim(),
+      dosage: newMedDosage.trim() || '1 tablet',
+      frequency: newMedFrequency || '1-0-1',
+      duration: newMedDuration || '5 days',
+      instructions: newMedInstructions || 'After food'
+    };
+    setPrescriptions(prev => [...prev, newRx]);
+    setNewMedName('');
+    setNewMedDosage('');
+  };
+
+  const handleRemovePrescription = (id) => {
+    setPrescriptions(prev => prev.filter(p => p.id !== id));
+  };
+
+  const handleAddTemplateMed = (name, dosage, frequency, duration, instructions) => {
+    const newRx = {
+      id: `rx_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      name,
+      dosage,
+      frequency,
+      duration,
+      instructions
+    };
+    setPrescriptions(prev => [...prev, newRx]);
+  };
+
+  const handlePrintPrescription = () => {
+    window.print();
+  };
+
   // Official Sign-off and ABDM FHIR R4 Bundle Generation
   const handleConfirmEncounter = async () => {
     if (!selectedEncounterId) return;
     setIsSigningOff(true);
     try {
+      // Auto-save treatment plan & prescriptions if drafted
+      if (treatmentNotes || prescriptions.length > 0 || investigationsOrdered || lifestyleAdvice || followUpInstructions) {
+        await api.saveTreatmentPlan(selectedEncounterId, {
+          clinical_notes: treatmentNotes,
+          prescriptions: prescriptions,
+          investigations_ordered: investigationsOrdered,
+          dietary_lifestyle_advice: lifestyleAdvice,
+          follow_up_instructions: followUpInstructions
+        });
+      }
+
       const res = await api.confirmEncounter(selectedEncounterId);
       if (res.success) {
         setGeneratedFhirBundle(res.fhir_bundle);
         setAbdmAck(res.abdm_ack);
-        setActiveTab('fhir');
+        setSignOffSuccess(true);
+        // CRITICAL: Keep physician on summary view; do NOT switch to raw code view!
+        setActiveTab('summary');
         fetchDetails(selectedEncounterId);
         fetchQueue();
       }
@@ -560,6 +687,61 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                     )}
                   </div>
                 </div>
+
+                {/* Official Clinical Sign-off Success Certificate Banner */}
+                {signOffSuccess && abdmAck && (
+                  <div style={{
+                    margin: '16px 0',
+                    padding: '16px 20px',
+                    backgroundColor: '#f0fdf4',
+                    border: '1.5px solid #22c55e',
+                    borderRadius: '16px',
+                    boxShadow: '0 4px 16px rgba(34, 197, 94, 0.12)'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '50%',
+                          backgroundColor: '#dcfce7',
+                          color: '#15803d',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}>
+                          <CheckCircle2 size={20} />
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: '1rem', color: '#166534' }}>
+                            Clinical Encounter Successfully Confirmed &amp; Signed Off
+                          </div>
+                          <div style={{ fontSize: '0.82rem', color: '#15803d', marginTop: '2px' }}>
+                            ABDM Gateway Ref: <strong>{abdmAck.referenceNumber}</strong> • Txn ID: <code>{abdmAck.transactionId}</code>
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <button
+                          onClick={() => setActiveTab('fhir')}
+                          className="btn-pill btn-pill-outline btn-pill-sm"
+                          style={{ borderColor: '#86efac', color: '#166534', backgroundColor: '#fff', fontSize: '0.78rem' }}
+                        >
+                          <FileCode2 size={13} />
+                          <span>View ABDM FHIR R4 Bundle</span>
+                        </button>
+                        <button
+                          onClick={() => setSignOffSuccess(false)}
+                          style={{ background: 'none', border: 'none', color: '#166534', cursor: 'pointer', padding: '4px' }}
+                          title="Dismiss"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Navigation Tabs */}
                 <div className="tabs-scrollable" style={{ padding: '8px 12px', marginBottom: '16px' }}>
@@ -1007,6 +1189,344 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                       )}
                     </div>
                   )}
+
+                  {/* 12. PHYSICIAN TREATMENT PLAN, PRESCRIPTIONS & CONSULTATION NOTES */}
+                  <div className="card-steep" style={{
+                    padding: '26px',
+                    border: '2px solid #3b82f6',
+                    borderRadius: '18px',
+                    backgroundColor: '#fbfdff',
+                    boxShadow: '0 4px 20px rgba(59, 130, 246, 0.08)'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '10px',
+                          backgroundColor: '#eff6ff',
+                          color: '#2563eb',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          <ClipboardList size={20} />
+                        </div>
+                        <div>
+                          <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e3a8a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span>12. Physician Treatment Plan &amp; Rx Orders</span>
+                            <span className="badge-pill" style={{ backgroundColor: '#dbeafe', color: '#1d4ed8', fontSize: '0.72rem' }}>
+                              Official OPD Consultation
+                            </span>
+                          </h3>
+                          <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>
+                            Document physical findings, issue new prescription medications, and specify follow-up care.
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={handlePrintPrescription}
+                          className="btn-pill btn-pill-outline btn-pill-sm"
+                          style={{ borderColor: '#cbd5e1', color: '#334155' }}
+                          title="Print / Save OPD Prescription"
+                        >
+                          <Printer size={14} />
+                          <span>Print Rx Slip</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSaveTreatmentPlan}
+                          disabled={isSavingTreatment}
+                          className="btn-pill btn-pill-primary btn-pill-sm"
+                          style={{ backgroundColor: '#2563eb', borderColor: '#2563eb' }}
+                        >
+                          <Save size={14} />
+                          <span>{isSavingTreatment ? 'Saving...' : 'Save Treatment Plan'}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {treatmentSaveSuccess && (
+                      <div style={{
+                        padding: '10px 16px',
+                        backgroundColor: '#f0fdf4',
+                        color: '#15803d',
+                        borderRadius: '10px',
+                        fontSize: '0.84rem',
+                        fontWeight: 600,
+                        marginBottom: '16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        <CheckCircle2 size={16} />
+                        <span>Treatment Plan, Rx orders, and Clinical notes saved to EHR successfully.</span>
+                      </div>
+                    )}
+
+                    {/* Part A: Clinical Examination Findings & Doctor's Notes */}
+                    <div style={{ marginBottom: '20px' }}>
+                      <label style={{ display: 'block', fontSize: '0.86rem', fontWeight: 600, color: '#1e293b', marginBottom: '6px' }}>
+                        Clinical Notes &amp; Physical Examination Findings:
+                      </label>
+                      <textarea
+                        rows={3}
+                        className="input-steep"
+                        placeholder="e.g. Vitals: BP 124/82 mmHg, PR 76 bpm, SpO2 99%. Chest clear, S1/S2 heard. Advised low glycemic diet and regular exercise. Confirmed Type 2 Diabetes Mellitus with mild fatigue."
+                        value={treatmentNotes}
+                        onChange={(e) => setTreatmentNotes(e.target.value)}
+                        style={{ width: '100%', resize: 'vertical' }}
+                      />
+                    </div>
+
+                    {/* Part B: Rx Prescriptions Builder */}
+                    <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Pill size={18} color="#2563eb" />
+                          <strong style={{ fontSize: '0.94rem', color: '#1e293b' }}>
+                            New Prescription Medications (Rx)
+                          </strong>
+                          <span className="badge-pill badge-gray" style={{ fontSize: '0.72rem' }}>
+                            {prescriptions.length} Med{prescriptions.length === 1 ? '' : 's'}
+                          </span>
+                        </div>
+                        {/* Quick Add Templates */}
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '0.74rem', color: '#64748b', alignSelf: 'center' }}>Quick add:</span>
+                          <button
+                            type="button"
+                            onClick={() => handleAddTemplateMed('Paracetamol 650mg', '1 tab', '1-0-1 (SOS)', '3 days', 'After food')}
+                            className="btn-pill btn-pill-outline btn-pill-sm"
+                            style={{ fontSize: '0.72rem', padding: '3px 8px' }}
+                          >
+                            + Paracetamol 650mg
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleAddTemplateMed('Pantoprazole 40mg', '1 tab', '1-0-0 (OD)', '14 days', 'Before breakfast')}
+                            className="btn-pill btn-pill-outline btn-pill-sm"
+                            style={{ fontSize: '0.72rem', padding: '3px 8px' }}
+                          >
+                            + Pantoprazole 40mg
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleAddTemplateMed('Cetirizine 10mg', '1 tab', '0-0-1 (HS)', '5 days', 'At bedtime')}
+                            className="btn-pill btn-pill-outline btn-pill-sm"
+                            style={{ fontSize: '0.72rem', padding: '3px 8px' }}
+                          >
+                            + Cetirizine 10mg
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Prescribed Medications Table/List */}
+                      {prescriptions.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+                          {prescriptions.map((rx, idx) => (
+                            <div key={rx.id || idx} style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '10px 14px',
+                              backgroundColor: '#f8fafc',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '10px',
+                              flexWrap: 'wrap',
+                              gap: '8px'
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <span style={{ fontWeight: 700, color: '#2563eb', fontSize: '0.85rem' }}>#{idx + 1}</span>
+                                <div>
+                                  <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>{rx.name}</strong>
+                                  <span style={{ fontSize: '0.82rem', color: '#64748b', marginLeft: '8px' }}>
+                                    ({rx.dosage}) • <strong>{rx.frequency}</strong> • {rx.duration}
+                                  </span>
+                                  {rx.instructions && (
+                                    <span style={{ fontSize: '0.78rem', color: '#0369a1', backgroundColor: '#e0f2fe', padding: '2px 8px', borderRadius: '6px', marginLeft: '8px' }}>
+                                      {rx.instructions}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleRemovePrescription(rx.id || idx)}
+                                style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', padding: '4px' }}
+                                title="Remove medication"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ padding: '14px', textAlign: 'center', fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic', marginBottom: '14px' }}>
+                          No new medications prescribed yet. Add medications below or click one of the quick-add buttons above.
+                        </div>
+                      )}
+
+                      {/* Add Medicine Inline Form */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr)) 80px',
+                        gap: '8px',
+                        alignItems: 'end',
+                        padding: '12px',
+                        backgroundColor: '#f1f5f9',
+                        borderRadius: '10px'
+                      }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                            Medicine Name
+                          </label>
+                          <input
+                            type="text"
+                            className="input-steep"
+                            placeholder="e.g. Metformin 500mg"
+                            value={newMedName}
+                            onChange={(e) => setNewMedName(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleAddPrescription(); }}
+                            style={{ fontSize: '0.82rem', padding: '8px 10px' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                            Dosage / Form
+                          </label>
+                          <input
+                            type="text"
+                            className="input-steep"
+                            placeholder="e.g. 1 tab / 500mg"
+                            value={newMedDosage}
+                            onChange={(e) => setNewMedDosage(e.target.value)}
+                            style={{ fontSize: '0.82rem', padding: '8px 10px' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                            Frequency
+                          </label>
+                          <select
+                            className="input-steep"
+                            value={newMedFrequency}
+                            onChange={(e) => setNewMedFrequency(e.target.value)}
+                            style={{ fontSize: '0.82rem', padding: '8px 6px' }}
+                          >
+                            <option value="1-0-0">1-0-0 (Morning only)</option>
+                            <option value="0-1-0">0-1-0 (Afternoon only)</option>
+                            <option value="0-0-1">0-0-1 (Night only)</option>
+                            <option value="1-0-1">1-0-1 (Morning &amp; Night)</option>
+                            <option value="1-1-1">1-1-1 (Thrice daily)</option>
+                            <option value="SOS">SOS (As needed)</option>
+                            <option value="Once a week">Once a week</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                            Duration
+                          </label>
+                          <input
+                            type="text"
+                            className="input-steep"
+                            placeholder="e.g. 5 days / 1 mo"
+                            value={newMedDuration}
+                            onChange={(e) => setNewMedDuration(e.target.value)}
+                            style={{ fontSize: '0.82rem', padding: '8px 10px' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                            Instructions
+                          </label>
+                          <select
+                            className="input-steep"
+                            value={newMedInstructions}
+                            onChange={(e) => setNewMedInstructions(e.target.value)}
+                            style={{ fontSize: '0.82rem', padding: '8px 6px' }}
+                          >
+                            <option value="After food">After food</option>
+                            <option value="Before food">Before food</option>
+                            <option value="With food">With food</option>
+                            <option value="Empty stomach">Empty stomach</option>
+                            <option value="At bedtime">At bedtime</option>
+                          </select>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleAddPrescription}
+                          className="btn-pill btn-pill-primary"
+                          style={{ minHeight: '36px', padding: '0 12px', fontSize: '0.82rem' }}
+                        >
+                          <Plus size={14} />
+                          <span>Add</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Part C: Diagnostic Lab Orders & Lifestyle Advice */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>
+                          Diagnostic Lab Orders / Investigations:
+                        </label>
+                        <input
+                          type="text"
+                          className="input-steep"
+                          placeholder="e.g. CBC, Serum Creatinine, Fasting Blood Sugar, Lipid Profile, ECG"
+                          value={investigationsOrdered}
+                          onChange={(e) => setInvestigationsOrdered(e.target.value)}
+                          style={{ fontSize: '0.86rem' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>
+                          Dietary &amp; Lifestyle Advice:
+                        </label>
+                        <input
+                          type="text"
+                          className="input-steep"
+                          placeholder="e.g. Low salt diet, 30 min brisk walk daily, avoid cold beverages"
+                          value={lifestyleAdvice}
+                          onChange={(e) => setLifestyleAdvice(e.target.value)}
+                          style={{ fontSize: '0.86rem' }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Part D: Follow-up & Review Instructions */}
+                    <div style={{ marginBottom: '16px' }}>
+                      <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>
+                        Follow-up &amp; Review Instructions:
+                      </label>
+                      <input
+                        type="text"
+                        className="input-steep"
+                        placeholder="e.g. Review in General Medicine OPD after 7 days with lab reports, or SOS if fever/chest pain recurs"
+                        value={followUpInstructions}
+                        onChange={(e) => setFollowUpInstructions(e.target.value)}
+                        style={{ fontSize: '0.86rem' }}
+                      />
+                    </div>
+
+                    {/* Save Button Row */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                      <button
+                        type="button"
+                        onClick={handleSaveTreatmentPlan}
+                        disabled={isSavingTreatment}
+                        className="btn-pill btn-pill-primary"
+                        style={{ backgroundColor: '#2563eb', borderColor: '#2563eb', padding: '10px 24px' }}
+                      >
+                        <Save size={16} />
+                        <span>{isSavingTreatment ? 'Saving Treatment Plan...' : 'Save & Update Patient Record'}</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -1162,9 +1682,9 @@ export default function PhysicianDashboard({ onExitDashboard }) {
               {/* TAB 4: ABDM FHIR R4 BUNDLE */}
               {activeTab === 'fhir' && generatedFhirBundle && (
                 <div className="card-steep" style={{ padding: '28px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
                     <div>
-                      <h4 style={{ marginBottom: '4px' }}>ABDM FHIR R4 Diagnostic Document Bundle</h4>
+                      <h4 style={{ marginBottom: '4px', fontSize: '1.15rem' }}>ABDM FHIR R4 Diagnostic Document Bundle</h4>
                       <span style={{ fontSize: '0.82rem', color: 'var(--slate-gray)' }}>
                         Conforms to NRCeS India / NDHM DocumentBundle &amp; OPConsultRecord specifications.
                       </span>
@@ -1181,7 +1701,9 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                       borderRadius: '12px',
                       display: 'flex',
                       justifyContent: 'space-between',
-                      alignItems: 'center'
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '10px'
                     }}>
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#166534', fontWeight: 600, fontSize: '0.94rem', marginBottom: '4px' }}>
@@ -1198,9 +1720,82 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                     </div>
                   )}
 
-                  <pre style={{ backgroundColor: 'var(--ink-black)', color: '#a7f3d0', padding: '20px', borderRadius: '14px', fontSize: '0.82rem', overflowX: 'auto', lineHeight: 1.5 }}>
-                    {JSON.stringify(generatedFhirBundle, null, 2)}
-                  </pre>
+                  {/* Clean Human-Readable FHIR Resource Summary Card */}
+                  <div style={{
+                    padding: '18px 20px',
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '12px',
+                    border: '1px solid #e2e8f0',
+                    marginBottom: '20px'
+                  }}>
+                    <h5 style={{ fontSize: '0.88rem', color: '#334155', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.03em' }}>
+                      FHIR Document Metadata &amp; Clinical Composition
+                    </h5>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', fontSize: '0.84rem' }}>
+                      <div>
+                        <span style={{ color: '#64748b' }}>Bundle ID:</span> <strong>{generatedFhirBundle.id}</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: '#64748b' }}>Resource Type:</span> <strong>{generatedFhirBundle.resourceType} ({generatedFhirBundle.type})</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: '#64748b' }}>Total Resources:</span> <strong>{generatedFhirBundle.entry?.length || 0} Entries</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: '#64748b' }}>Subject:</span> <strong>{currentPatient?.full_name} ({currentPatient?.abha_number || 'ABHA Linked'})</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: '#64748b' }}>Practitioner:</span> <strong>{physicianUser?.name} ({physicianUser?.nmcNumber})</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: '#64748b' }}>Composition Title:</span> <strong>{generatedFhirBundle.entry?.[0]?.resource?.title || 'Outpatient Consultation Record'}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Collapsible Technical JSON Inspection Section */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowRawFhirJson(!showRawFhirJson)}
+                      className="btn-pill btn-pill-outline btn-pill-sm"
+                      style={{ fontSize: '0.82rem' }}
+                    >
+                      <FileCode2 size={14} />
+                      <span>{showRawFhirJson ? 'Hide Technical JSON Code' : 'Show Technical FHIR JSON Code'}</span>
+                    </button>
+
+                    {showRawFhirJson && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard?.writeText(JSON.stringify(generatedFhirBundle, null, 2));
+                          setJsonCopied(true);
+                          setTimeout(() => setJsonCopied(false), 2500);
+                        }}
+                        className="btn-pill btn-pill-outline btn-pill-sm"
+                        style={{ fontSize: '0.78rem' }}
+                      >
+                        <Copy size={13} />
+                        <span>{jsonCopied ? 'Copied to Clipboard!' : 'Copy JSON'}</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {showRawFhirJson && (
+                    <pre style={{
+                      backgroundColor: 'var(--ink-black)',
+                      color: '#a7f3d0',
+                      padding: '20px',
+                      borderRadius: '14px',
+                      fontSize: '0.82rem',
+                      overflowX: 'auto',
+                      lineHeight: 1.5,
+                      maxHeight: '480px'
+                    }}>
+                      {JSON.stringify(generatedFhirBundle, null, 2)}
+                    </pre>
+                  )}
                 </div>
               )}
 

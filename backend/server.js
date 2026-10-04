@@ -1042,6 +1042,51 @@ app.put('/api/physician/encounters/:id/summary', (req, res) => {
   });
 });
 
+// Update Treatment Plan, Prescriptions, and Notes
+app.put('/api/physician/encounters/:id/treatment', (req, res) => {
+  const encounterId = req.params.id;
+  const summary = store.get('clinical_summaries').find(s => s.encounter_id === encounterId);
+  if (!summary) return res.status(404).json({ error: 'Clinical summary not found.' });
+
+  const {
+    clinical_notes = '',
+    prescriptions = [],
+    investigations_ordered = '',
+    dietary_lifestyle_advice = '',
+    follow_up_instructions = ''
+  } = req.body;
+
+  const updatedSummary = store.update('clinical_summaries', summary.id, {
+    clinical_notes,
+    treatment_notes: clinical_notes,
+    prescriptions,
+    investigations_ordered,
+    dietary_lifestyle_advice,
+    follow_up_instructions,
+    treatment_updated_at: new Date().toISOString(),
+    treatment_updated_by: req.user?.id || 'doc_101'
+  });
+
+  logPhysicianAudit({
+    encounterId,
+    staffId: req.user?.id || 'doc_101',
+    actionType: 'PHYSICIAN_TREATMENT_PLAN',
+    fieldModified: 'treatment_plan',
+    previousValue: summary.clinical_notes || '',
+    newValue: JSON.stringify({ clinical_notes, prescriptions, follow_up_instructions }),
+    reason: 'Updated Treatment Plan & Rx Prescriptions',
+    ipAddress: req.ip || '127.0.0.1'
+  });
+
+  store.update('encounters', encounterId, { status: 'AMENDED_CONFIRMED' });
+  broadcast('PATIENT_QUEUE_UPDATE', { encounter_id: encounterId });
+
+  res.json({
+    success: true,
+    summary: updatedSummary
+  });
+});
+
 // Confirm & Sign Off Encounter (Generating Valid ABDM FHIR R4 Bundle)
 app.post('/api/physician/encounters/:id/confirm', (req, res) => {
   const encounterId = req.params.id;
@@ -1061,18 +1106,13 @@ app.post('/api/physician/encounters/:id/confirm', (req, res) => {
   };
 
   // Update summary confirmed by physician
-  store.update('clinical_summaries', summary.id, {
+  const updatedSummary = store.update('clinical_summaries', summary.id, {
     confirmed_by_physician_id: physician.id,
     confirmed_at: new Date().toISOString()
   });
 
-  // Update encounter status
-  const updatedEncounter = store.update('encounters', encounterId, {
-    status: 'REVIEWED_CONFIRMED'
-  });
-
   // Generate spec-compliant FHIR R4 document bundle for ABDM HIP gateway
-  const fhirBundle = buildFHIRBundle(patient, summary, entities, physician);
+  const fhirBundle = buildFHIRBundle(patient, updatedSummary, entities, physician);
   validateFhirBundle(fhirBundle);
 
   // Auto-dispatch to Mock ABDM HIP Gateway
@@ -1088,6 +1128,13 @@ app.post('/api/physician/encounters/:id/confirm', (req, res) => {
       message: 'FHIR Document Bundle successfully ingested into ABDM Health Information Provider (HIP) registry.'
     }
   };
+
+  // Update encounter status and store generated bundle & ack
+  const updatedEncounter = store.update('encounters', encounterId, {
+    status: 'REVIEWED_CONFIRMED',
+    fhir_bundle: fhirBundle,
+    abdm_ack: abdmAck
+  });
 
   console.log(`[ABDM HIP Push] Encounter ${encounterId} signed off. FHIR Bundle ${fhirBundle.id} pushed (Ref: ${referenceNumber})`);
 

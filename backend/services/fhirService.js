@@ -223,6 +223,19 @@ export function buildFHIRBundle(patientData = {}, summaryData = {}, extractedDoc
   const medicationReferences = [];
 
   const candidateMeds = [];
+
+  // Include newly prescribed medications from attending physician
+  if (Array.isArray(summaryData.prescriptions)) {
+    summaryData.prescriptions.forEach(p => {
+      const name = typeof p === 'string' ? p : (p.name || p.medicine || '');
+      const dose = typeof p === 'object'
+        ? `${p.dosage || '1 unit'} | ${p.frequency || ''} | ${p.duration || ''} | ${p.instructions || ''}`.trim()
+        : 'Prescribed by Physician';
+      if (name.trim()) {
+        candidateMeds.push({ name: name.trim(), dose });
+      }
+    });
+  }
   if (summaryData.current_medications && summaryData.current_medications !== 'None' && summaryData.current_medications !== 'None reported') {
     summaryData.current_medications.split(/[,;\n]/).forEach(m => {
       if (m.trim().length > 2) candidateMeds.push({ name: m.trim(), dose: 'As prescribed' });
@@ -471,6 +484,30 @@ export function buildFHIRBundle(patientData = {}, summaryData = {}, extractedDoc
       entry: observationReferences.length > 0 ? observationReferences : undefined
     }
   ];
+
+  // Optional Care Plan & Physician Orders Section (LOINC 18776-5)
+  if (summaryData.clinical_notes || (summaryData.prescriptions && summaryData.prescriptions.length > 0) || summaryData.follow_up_instructions) {
+    const rxText = Array.isArray(summaryData.prescriptions)
+      ? summaryData.prescriptions.map(p => typeof p === 'string' ? p : `${p.name} (${p.dosage || ''}, ${p.frequency || ''}, ${p.duration || ''}, ${p.instructions || ''})`).join('; ')
+      : (summaryData.prescriptions || 'None');
+
+    compositionSections.push({
+      title: 'Care Plan & Physician Orders',
+      code: {
+        coding: [
+          {
+            system: 'http://loinc.org',
+            code: '18776-5',
+            display: 'Plan of care note'
+          }
+        ]
+      },
+      text: {
+        status: 'generated',
+        div: `<div xmlns="http://www.w3.org/1999/xhtml"><p><strong>Doctor Notes:</strong> ${escapeXml(summaryData.clinical_notes || 'Clinical consultation documented.')}</p><p><strong>Prescriptions:</strong> ${escapeXml(rxText || 'None')}</p><p><strong>Advice &amp; Follow-Up:</strong> ${escapeXml(summaryData.follow_up_instructions || 'Review as advised.')}</p></div>`
+      }
+    });
+  }
 
   const compositionResource = {
     resourceType: 'Composition',
