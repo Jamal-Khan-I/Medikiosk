@@ -42,7 +42,28 @@ class ApiClient {
       }
     });
 
-    const data = await response.json();
+    const contentType = response.headers.get('content-type') || '';
+    let data;
+    if (contentType.includes('application/json')) {
+      try {
+        data = await response.json();
+      } catch (err) {
+        data = { error: 'Invalid JSON response from server' };
+      }
+    } else {
+      const text = await response.text();
+      // Extract clean error message if server returns an HTML error page (e.g. 500 or 502)
+      let cleanMsg = text;
+      const titleMatch = text.match(/<title>(.*?)<\/title>/i);
+      const preMatch = text.match(/<pre>(.*?)<\/pre>/is);
+      if (titleMatch && titleMatch[1]) {
+        cleanMsg = titleMatch[1].replace(/<[^>]+>/g, '').trim();
+      } else if (preMatch && preMatch[1]) {
+        cleanMsg = preMatch[1].replace(/<[^>]+>/g, '').trim();
+      }
+      data = { error: cleanMsg || `HTTP ${response.status} ${response.statusText}` };
+    }
+
     if (!response.ok) {
       throw new Error(data.error || 'Network request failed');
     }
@@ -267,6 +288,12 @@ class ApiClient {
   deleteEncounter(encounterId) {
     return this.request(`/physician/encounters/${encounterId}`, {
       method: 'DELETE'
+    });
+  }
+
+  clearPhysicianQueue() {
+    return this.request('/physician/queue/clear', {
+      method: 'POST'
     });
   }
 

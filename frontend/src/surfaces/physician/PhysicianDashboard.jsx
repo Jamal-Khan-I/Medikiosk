@@ -239,6 +239,18 @@ export default function PhysicianDashboard({ onExitDashboard }) {
     }
   };
 
+  const handleClearQueue = async () => {
+    if (!window.confirm('Clear all patient encounters from the queue?')) return;
+    try {
+      await api.clearPhysicianQueue();
+      setQueue([]);
+      setSelectedEncounterId(null);
+      setEncounterDetails(null);
+    } catch (err) {
+      alert('Error clearing queue: ' + err.message);
+    }
+  };
+
   useEffect(() => {
     fetchQueue();
     const unsubscribe = api.subscribe((msg) => {
@@ -491,7 +503,20 @@ export default function PhysicianDashboard({ onExitDashboard }) {
                 <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>Active Outpatient Queue</div>
                 <div style={{ fontSize: '0.76rem', color: 'var(--slate-gray)' }}>{queue.length} Patients Ready</div>
               </div>
-              <span className="badge-pill badge-gray">Live WebSocket</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {queue.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleClearQueue}
+                    className="btn-pill btn-pill-outline btn-pill-sm"
+                    style={{ fontSize: '0.72rem', padding: '3px 8px', color: 'var(--slate-gray)' }}
+                    title="Clear all patient encounters from queue"
+                  >
+                    Clear All
+                  </button>
+                )}
+                <span className="badge-pill badge-gray">Live WebSocket</span>
+              </div>
             </div>
 
             {isMobileScreen && queue.length > 0 && (
